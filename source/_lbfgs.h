@@ -25,7 +25,7 @@ namespace pele{
       // places to store the lbfgs memory
       std::vector<vector<double> > s_;
       std::vector<vector<double> > y_;
-      std::vector<double> rho_;
+      Array<double> rho_;
       double H0_;
       int k_; /**< Counter for how many times the memory has been updated */
 
@@ -35,7 +35,7 @@ namespace pele{
        */
       LBFGS(
           pele::BasePotential * potential,
-          const pele::Array<double> & x0,
+          const Array<double> x0,
           double tol=1e-4,
           int M=4
           );
@@ -70,34 +70,36 @@ namespace pele{
        * This updates s_, y_, rho_, H0_, and k_
        */
       void update_memory(
-          std::vector<double> const & xold,
-          std::vector<double> const & gold,
-          std::vector<double> const & xnew,
-          std::vector<double> const & gnew);
+          Array<double> const & xold,
+          Array<double> const & gold,
+          Array<double> const & xnew,
+          Array<double> const & gnew);
 
       /**
        * Compute the LBFGS step from the memory
        */
-      void compute_lbfgs_step(vector<double> & step);
+      void compute_lbfgs_step(Array<double> & step);
 
       /**
        * Take the step and do a backtracking linesearch if necessary.
        * Apply the maximum step size constraint and ensure that the function
        * does not rise more than the allowed amount.
        */
-      double backtracking_linesearch(vector<double> & step);
+      double backtracking_linesearch(Array<double> & step);
 
   };
 
   LBFGS::LBFGS(
           pele::BasePotential * potential,
-          const pele::Array<double> & x0,
+          const Array<double> x0,
           double tol,
           int M)
   :
           GradientOptimizer(potential, x0, tol),
           M_(M),
           max_f_rise_(1e-4),
+          //s_(M_),
+          //y_(M_),
           s_(M_, vector<double>(x0.size())),
           y_(M_, vector<double>(x0.size())),
           rho_(M_),
@@ -106,6 +108,28 @@ namespace pele{
   {
       // set the precision of the printing
       cout << std::setprecision(12);
+      std::vector<Array<double> > myvector;
+      myvector.push_back(Array<double>(10));
+      myvector.push_back(Array<double>(10));
+      myvector.resize(1);
+      /*
+      cout << "in LBFGS, about to create vectors\n";
+      s_.resize(1);
+      cout << "made a vector of length 1\n";
+      s_.resize(2);
+      cout << "made a vector of length 2\n";
+
+      // allocate memory for the s_ and y_ vector of arrays
+      s_.resize(M_);
+      y_.resize(M_);
+      cout << "resized vectors\n";
+      for (size_t i = 0; i < M_; ++i){
+          s_[i].resize(x_.size());
+          y_[i].resize(x_.size());
+          assert(s_[i].size() == x_.size());
+          assert(y_[i].size() == x_.size());
+      }
+      */
   }
 
   /**
@@ -117,11 +141,11 @@ namespace pele{
           initialize_func_gradient();
 
       // make a copy of the position and gradient
-      std::vector<double> x_old = x_;
-      std::vector<double> g_old = g_;
+      Array<double> x_old(x_.copy());
+      Array<double> g_old(g_.copy());
 
       // get the stepsize and direction from the LBFGS algorithm
-      vector<double> step(x_.size());
+      Array<double> step(x_.size());
       compute_lbfgs_step(step);
 
       // reduce the stepsize if necessary
@@ -142,10 +166,10 @@ namespace pele{
   }
 
   void LBFGS::update_memory(
-          std::vector<double> const & xold,
-          std::vector<double> const & gold,
-          std::vector<double> const & xnew,
-          std::vector<double> const & gnew)
+          Array<double> const & xold,
+          Array<double> const & gold,
+          Array<double> const & xnew,
+          Array<double> const & gnew)
   {
       // update the lbfgs memory
       // This updates s_, y_, rho_, and H0_, and k_
@@ -155,7 +179,7 @@ namespace pele{
           s_[klocal][j2] = xnew[j2] - xold[j2];
       }
 
-      double ys = vecdot(y_[klocal], s_[klocal]);
+      double ys = arraydot(y_[klocal], s_[klocal]);
       if (ys == 0.) {
           if (verbosity_ > 0) {
               cout << "warning: resetting YS to 1.\n";
@@ -165,7 +189,7 @@ namespace pele{
 
       rho_[klocal] = 1. / ys;
 
-      double yy = vecdot(y_[klocal], y_[klocal]);
+      double yy = arraydot(y_[klocal], y_[klocal]);
       if (yy == 0.) {
           if (verbosity_ > 0) {
               cout << "warning: resetting YY to 1.\n";
@@ -176,14 +200,13 @@ namespace pele{
 
       // increment k
       k_ += 1;
-
   }
 
-  void LBFGS::compute_lbfgs_step(vector<double> & step)
+  void LBFGS::compute_lbfgs_step(Array<double> & step)
   {
       if (k_ == 0){
           // take a conservative first step
-          double gnorm = vecnorm(g_);
+          double gnorm = arraynorm(g_);
           if (gnorm > 1.) gnorm = 1. / gnorm;
           for (size_t j2 = 0; j2 < x_.size(); ++j2){
               step[j2] = - gnorm * H0_ * g_[j2];
@@ -198,13 +221,13 @@ namespace pele{
       int jmax = k_;
       int i;
       double beta;
-      vector<double> alpha(M_);
+      Array<double> alpha(M_);
 
       // loop backwards through the memory
       for (int j = jmax - 1; j >= jmin; --j){
           i = j % M_;
           //cout << "    i " << i << " j " << j << "\n";
-          alpha[i] = rho_[i] * vecdot(s_[i], step);
+          alpha[i] = rho_[i] * arraydot(s_[i], step);
           for (size_t j2 = 0; j2 < step.size(); ++j2){
               step[j2] -= alpha[i] * y_[i][j2];
           }
@@ -219,7 +242,7 @@ namespace pele{
       for (int j = jmin; j < jmax; ++j){
           i = j % M_;
           //cout << "    i " << i << " j " << j << "\n";
-          beta = rho_[i] * vecdot(y_[i], step);
+          beta = rho_[i] * arraydot(y_[i], step);
           for (size_t j2 = 0; j2 < step.size(); ++j2){
               step[j2] += s_[i][j2] * (alpha[i] - beta);
           }
@@ -232,14 +255,14 @@ namespace pele{
 
   }
 
-  double LBFGS::backtracking_linesearch(vector<double> & step)
+  double LBFGS::backtracking_linesearch(Array<double> & step)
   {
-      vector<double> xnew(x_.size());
-      vector<double> gnew(x_.size());
+      Array<double> xnew(x_.size());
+      Array<double> gnew(x_.size());
       double fnew;
 
       // if the step is pointing uphill, invert it
-      if (vecdot(step, g_) > 0.){
+      if (arraydot(step, g_) > 0.){
           if (verbosity_ > 1) {
               cout << "warning: step direction was uphill.  inverting\n";
           }
@@ -249,7 +272,7 @@ namespace pele{
       }
 
       double factor = 1.;
-      double stepsize = vecnorm(step);
+      double stepsize = arraynorm(step);
 
       // make sure the step is no larger than maxstep_
       if (factor * stepsize > maxstep_){
@@ -288,10 +311,9 @@ namespace pele{
       x_ = xnew;
       g_ = gnew;
       f_ = fnew;
-      rms_ = vecnorm(gnew) / sqrt(gnew.size());
+      rms_ = arraynorm(gnew) / sqrt(gnew.size());
       return stepsize * factor;
   }
-
 }
 
 #endif
