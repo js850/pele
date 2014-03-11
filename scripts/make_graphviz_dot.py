@@ -1,4 +1,5 @@
 import argparse
+from itertools import izip
 
 import numpy as np
 import networkx as nx
@@ -65,18 +66,6 @@ def plot_nx(graph):
     import matplotlib.pyplot as plt
     plt.show()
 
-class XYLim(object):
-    def __init__(self, xmin, ymin, xmax, ymax):
-        self.xmin = xmin
-        self.ymin = ymin
-        self.xmax = xmax
-        self.ymax = ymax
-    
-    def update(self, xylim):
-        self.xmax = max((self.xmax, xylim.xmax))
-        self.xmin = min((self.xmin, xylim.xmin))
-        self.ymax = max((self.ymax, xylim.ymax))
-        self.ymin = min((self.ymin, xylim.ymin))
 
 def pos2path(pos):
     """string to path"""
@@ -97,36 +86,26 @@ def pos2path(pos):
         else:
             codes.append(Path.CURVE4)
     
-    nppoints = np.array(points)
-    print nppoints.shape
-    xmin, ymin = nppoints.min(0)
-    xmax, ymax = nppoints.max(0)
-    xylim = XYLim(xmin, ymin, xmax, ymax)
     
     path = Path(points, codes)
-    return path, xylim
+    return path
     
 def get_edge_collection(agraph):
     mpl.collections.PathCollection
     paths = []
-    xylim = None
     for edge in agraph.edges_iter():
         pos = edge.attr["pos"]
 #        print pos
-        path, xylim_new = pos2path(pos)
+        path = pos2path(pos)
         paths.append(path)
 #        patch = patches.PathPatch(path, facecolor='none', lw=2, linestyle="solid")
 #        ax.add_patch(patch)
         
-        if xylim is None:
-            xylim = xylim_new
-        else:
-            xylim.update(xylim_new)
     
     path_collection = PathCollection(paths, facecolor="none")
-    return path_collection, xylim
+    return path_collection
 
-def get_node_collection(ax, agraph, scale=60.):
+def get_node_collection(ax, agraph, scale=70.):
     ellipses = []
     widths = []
     heights = []
@@ -136,18 +115,28 @@ def get_node_collection(ax, agraph, scale=60.):
         xy = map(float, pos.split(","))
         width = float(node.attr["width"])*scale
         height = float(node.attr["height"])*scale
+        color = node.attr["color"]
         print xy, width, height
-        ellipse = patches.Ellipse(xy, width, height, facecolor='none')
+        ellipse = patches.Ellipse(xy, width, height, facecolor='none', edgecolor=color)
         ellipses.append(ellipse)
         widths.append(width)
         heights.append(height)
         offsets.append(xy)
-        ax.add_patch(ellipse)
+        
+#        ax.add_patch(ellipse)
     
     rot = [0. for h in heights]
+    offsets = np.array(offsets)
+    print offsets
     
-    ellipse_collection = mpl.collections.EllipseCollection(widths, heights, rot, offsets=offsets)
-    return ellipse_collection
+#    ellipse_collection = mpl.collections.EllipseCollection(widths, heights, rot, 
+#                                                           offsets=offsets,
+##                                                           facecolor="none", 
+#                                                           units="x",
+#                                                           offset_position="data"
+#                                                           )
+    patch_collection = mpl.collections.PatchCollection(ellipses, match_original=True)
+    return patch_collection, offsets
 
 def get_agraph_bounding_box(agraph):
     """there is a bug which means you can't get it the normal way
@@ -169,35 +158,25 @@ def plot_edges(agraph):
 
     fig = plt.figure(figsize=(fxmax, fymax))
     ax = fig.add_subplot(111)
-#    xylim = None
-#    for edge in agraph.edges_iter():
-#        pos = edge.attr["pos"]
-##        print pos
-#        path, xylim_new = pos2path(pos)
-#        patch = patches.PathPatch(path, facecolor='none', lw=2, linestyle="solid")
-#        ax.add_patch(patch)
-#        
-#        if xylim is None:
-#            xylim = xylim_new
-#        else:
-#            xylim.update(xylim_new)
-    path_collection, xylim = get_edge_collection(agraph)
-    ax.add_collection(path_collection)
-    
-#    points = []
-#    for node in agraph:
-#        pos = node.attr["pos"]
-#        xy = map(float, pos.split(","))
-#        points.append(xy)
-#    points = np.array(points)
-#    print "points", points.shape
-#    ax.scatter(points[:,0], points[:,1])
-    point_collection = get_node_collection(ax, agraph)
-#    ax.add_collection(point_collection)
-    
-#    lims = agraph.graph_attr["bb"]
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
+
+    # add the edges
+    path_collection = get_edge_collection(agraph)
+    ax.add_collection(path_collection)
+    
+    # add the nodes
+    point_collection, points = get_node_collection(ax, agraph)
+    ax.add_collection(point_collection)
+    
+    # label the nodes
+    fontsize = 8
+    for (x, y), node in izip(points, agraph):
+        label = str(node)
+        ax.text(x, y, label, horizontalalignment='center',
+                verticalalignment='center', size=fontsize)
+    
+#    lims = agraph.graph_attr["bb"]
     
     fig.set_size_inches(xmax, ymax)
     
@@ -227,11 +206,14 @@ def main():
 #     plot_nx(graph)
     agraph = nx.to_agraph(graph)
     agraph.graph_attr["splines"] = True
-    agraph.layout(prog="dot")
+    agraph.graph_attr["overlap"] = False
+    agraph.layout(prog="sfdp")
     agraph.write(open("test.dot", "w"))
     plot_edges(agraph)
 
-#    nx.view_pygraphviz(graph)
+    graph.graph["splines"] = True
+    graph.graph["overlap"] = False
+    nx.view_pygraphviz(graph, prog="sfdp")
 
 if __name__ == "__main__":
     main()
