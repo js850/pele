@@ -1,8 +1,10 @@
 import argparse
+import tempfile
 from itertools import izip
 
 import numpy as np
 import networkx as nx
+from networkx.drawing.nx_agraph import display_pygraphviz
 import pygraphviz
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -209,11 +211,17 @@ def main():
     agraph.graph_attr["overlap"] = False
     agraph.layout(prog="sfdp")
     agraph.write(open("test.dot", "w"))
-    plot_edges(agraph)
+#    plot_edges(agraph)
 
-    graph.graph["splines"] = True
-    graph.graph["overlap"] = False
-    nx.view_pygraphviz(graph, prog="sfdp")
+#    graph.graph["graph"] = dict()
+#    graph.graph["graph"]["splines"] = True
+#    graph.graph["graph"]["overlap"] = False
+#    nx.view_pygraphviz(graph, prog="sfdp", args="-Gsize='7,8'")
+    
+    path = tempfile.NamedTemporaryFile(suffix=".ps", delete=False)
+    print path.name
+    display_pygraphviz(agraph, path, prog="dot")
+    
 
 if __name__ == "__main__":
     main()
