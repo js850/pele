@@ -1,8 +1,8 @@
 import unittest
 
 import numpy as np
-from pele.transition_states._NEB_utils import neb_force
-# from pele.transition_states import _NEB_utils
+# from pele.transition_states._NEB_utils import neb_force
+from pele.transition_states._cython_tools import _neb_force
 
 def _pythonic_neb_force(t, greal, d_left, g_left, d_right, g_right, k,
                         dneb=True, with_springenergy=True):
@@ -43,9 +43,8 @@ class TestNebForce(unittest.TestCase):
         print greal1.shape
         greal1 = np.array(greal1, order='F')
         e, g_tot = _pythonic_neb_force(t, greal1, d_left, g_left, d_right, g_right, k, dneb=dneb)
-        e1, g_tot2 = neb_force(t, greal1, d_left, g_left, d_right, g_right, k, dneb)
-        if dneb: # the fortran script is broken for springenergy and not dneb
-            self.assertAlmostEqual(e, e1, 3)
+        e1, g_tot2 = _neb_force(t, greal1, d_left, g_left, d_right, g_right, k, dneb)
+        self.assertAlmostEqual(e, e1, 3)
         for g1, g2 in zip(g_tot, g_tot2):
             self.assertAlmostEqual(g1, g2, 3)
         

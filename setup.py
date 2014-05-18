@@ -54,7 +54,6 @@ fmodules.add_module("pele/potentials/fortran/ljpshiftfort.f90")
 fmodules.add_module("pele/potentials/fortran/scdiff_periodic.f90")
 fmodules.add_module("pele/utils/_fortran_utils.f90")
 fmodules.add_module("pele/transition_states/_orthogoptf.f90")
-fmodules.add_module("pele/transition_states/_NEB_utils.f90")
 fmodules.add_module("pele/angleaxis/_aadist.f90")
 
 
@@ -73,6 +72,10 @@ cxx_modules = [
                       extra_compile_args=extra_compile_args,
                       ),
             Extension("pele.accept_tests._cython_tools", ["pele/accept_tests/_cython_tools.c"],
+                      include_dirs=[numpy_include],
+                      extra_compile_args=extra_compile_args,
+                      ),
+            Extension("pele.transition_states._cython_tools", ["pele/transition_states/_cython_tools.c"],
                       include_dirs=[numpy_include],
                       extra_compile_args=extra_compile_args,
                       ),
