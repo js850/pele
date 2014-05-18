@@ -3,8 +3,6 @@ import os.path
 import copy
 import logging
 
-
-from pele.transition_states import InterpolatedPath
 from pele.optimize import Result
 from pele.optimize import mylbfgs
         
@@ -361,6 +359,7 @@ class NEB(object):
         #print "spring", np.dot(g_spring, t)
         if True:
             import _NEB_utils
+            print "greal shape", greal.shape
             E, g_tot = _NEB_utils.neb_force(t,greal, d_left, g_left, d_right, g_right, self.k, self.dneb)
             if self.with_springenergy:
                 return E, g_tot
