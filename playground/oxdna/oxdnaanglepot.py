@@ -1,5 +1,5 @@
 from pele.utils.rbtools import CoordsAdapter
-from pele.potentials.fortran.rmdrvt import rmdrvt
+from pele.angleaxis._aadist import rmdrvt
 import oxdnagmin_ as GMIN
 from pele.potentials import GMINPotential
 import numpy as np

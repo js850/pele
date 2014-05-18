@@ -1,7 +1,7 @@
 import numpy as np
 from pele.utils import rotations
 from pele.angleaxis import CoordsAdapter
-from pele.potentials.fortran.rmdrvt import rmdrvt as rotMatDeriv
+from pele.angleaxis._aadist import rmdrvt as rotMatDeriv
 from pele.transition_states import interpolate_linear
 from math import pi
 from pele import takestep
