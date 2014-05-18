@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from pele.potentials.lj import LJ
+from pele.potentials import LJ
 
 class LJTest(unittest.TestCase):
     def setUp(self):

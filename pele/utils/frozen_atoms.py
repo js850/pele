@@ -14,7 +14,7 @@ import numpy as np
 
 import pele.potentials.ljpshift as ljpshift
 from pele.potentials.potential import potential as basepot
-from pele.potentials.ljcut import LJCut
+from pele.potentials import LJCut
 from pele.utils.neighbor_list import NeighborListSubsetBuild, NeighborListPotentialBuild
 from pele.utils.neighbor_list import NeighborListPotentialMulti
 

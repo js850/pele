@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from pele.potentials.ljcut import LJCut
+from pele.potentials import LJCut
 
 class LJCutTest(unittest.TestCase):
     def setUp(self):

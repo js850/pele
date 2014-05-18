@@ -21,7 +21,7 @@ import numpy as np
 
 from pele.potentials.potential import potential as basepot
 import _fortran_utils
-from pele.potentials.ljcut import LJCut as LJ
+from pele.potentials import LJCut as LJ
 import pele.potentials.ljpshift as ljpshift
 
 

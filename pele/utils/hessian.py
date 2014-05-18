@@ -14,7 +14,6 @@ Tools for manipulating the Hessian.  In particular, for finding eigenvalues and 
 
 """
 import numpy as np 
-from pele.potentials.lj import LJ
 
 __all__ = ["get_eig", "get_eigvals", "get_sorted_eig", "get_smallest_eig", "make_sparse"]
 

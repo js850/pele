@@ -55,24 +55,25 @@ to be written
 """ 
 
 
-from potential import *
+from potential import BasePotential
 #from _pele import BasePotential
 #from lj import *
-from _lj_cpp import LJ, BLJCut
-from _hs_wca_cpp import *
-from _wca_cpp import *
+from _lj_cpp import LJ, BLJCut, LJCut
+from _hs_wca_cpp import HS_WCA
+from _wca_cpp import WCA
 from _harmonic_cpp import Harmonic
-from ATLJ import *
-from coldfusioncheck import *
-from gminpotential import *
-from heisenberg_spin import *
-from heisenberg_spin_RA import *
+from ATLJ import ATLJ
+from coldfusioncheck import ColdFusionCheck
+from gminpotential import GMINPotential
+from heisenberg_spin import HeisenbergModel
+from heisenberg_spin_RA import HeisenbergModelRA
 from ljpshiftfast import *
-from ljcut import *
+# from ljcut import *
 #from potential import *
 #from salt import *
-from soft_sphere import *
+# from soft_sphere import *
 #from stockmeyer import *
-from xyspin import *
-from morse import Morse
+from xyspin import XYModel
+# from morse import Morse
+from _morse_cpp import Morse
 
