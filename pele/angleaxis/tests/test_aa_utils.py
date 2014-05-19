@@ -4,6 +4,67 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from pele.angleaxis._aadist import rmdrvt, sitedist_grad
+from pele.utils.rotations import vec_random
+
+def _rot_mat_derivative_small_theta(p, with_grad):
+    theta2 = p.dot(p)
+    if theta2 > 1e-2:
+        raise ValueError("theta must be small")
+    # Execute if the angle of rotation is zero
+    # In this case the rotation matrix is the identity matrix
+    rm = np.eye(3)
+
+    # vr274> first order corrections to rotation matrix
+    rm[1,0] = -p[2]
+    rm[0,1] = p[2]
+    rm[2,0] = p[1]
+    rm[0,2] = -p[1]
+    rm[2,1] = -p[0]
+    rm[1,2] = p[0]
+
+    #        If derivatives do not need to found, we're finished
+    if not with_grad: 
+        return rm, None, None, None 
+
+    # hk286 - now up to the linear order in theta
+    e = np.zeros([3,3])
+    e[0,0]    = 0.0
+    e[1,0]    = p[1]
+    e[2,0]    = p[2]
+    e[0,1]    = p[1]
+    e[1,1]    = -2.0*p[0]
+    e[2,1]    = -2.0
+    e[0,2]    = p[2]
+    e[1,2]    = 2.0
+    e[2,2]    = -2.0*p[0]
+    drm1 = 0.5*e
+
+    e[:]    = 0.
+    e[0,0]    = -2.0*p[1]
+    e[1,0]    = p[0]
+    e[2,0]    = 2.0
+    e[0,1]    = p[0]
+    e[1,1]    = 0.0
+    e[2,1]    = p[2]
+    e[0,2]    = -2.0
+    e[1,2]    = p[2]
+    e[2,2]    = -2.0*p[1]
+    drm2 = 0.5*e
+
+    e[:] = 0
+    e[0,0]    = -2.0*p[2]
+    e[1,0]    = -2.0
+    e[2,0]    = p[0]
+    e[0,1]    = 2.0
+    e[1,1]    = -2.0*p[2]
+    e[2,1]    = p[1]
+    e[0,2]    = p[0]
+    e[1,2]    = p[1]
+    e[2,2]    = 0.0
+    drm3 = 0.5*e
+    
+    return rm, drm1, drm2, drm3
+    
 
 def _rot_mat_derivative(p, with_grad):
     """compute the derivative of a rotation matrix
@@ -13,8 +74,8 @@ def _rot_mat_derivative(p, with_grad):
     p : ndarray
         angle axis vector
     """
-    I3 = np.eye(3)
     theta2 = p.dot(p)
+    if theta2 < 1e-12: return _rot_mat_derivative_small_theta(p, with_grad)
     # Execute for the general case, where THETA dos not equal zero
     # Find values of THETA, CT, ST and THETA3
     theta   = np.sqrt(theta2)
@@ -39,7 +100,10 @@ def _rot_mat_derivative(p, with_grad):
 
     # RM is calculated from Rodrigues' rotation formula [equation [1]
     # in the paper]
-    rm      = I3 + [1. - ct] * esq + st * e
+    rm      = np.eye(3) + [1. - ct] * esq + st * e
+    
+    if not with_grad:
+        return rm, None, None, None
 
     # If derivatives do not need to found, we're finished
 
@@ -116,13 +180,34 @@ def _sitedist_grad(drij, p1, p2, S, W, cog):
 
 class TestRmDrvt(unittest.TestCase):
     def test1(self):
-        from pele.utils.rotations import vec_random
-        P = vec_random()
-        P *= 0.5
-        with_grad = True
-        
+        P = vec_random() * np.random.uniform(1e-5,1)
+        self.check(P, True)
+
+    def test_small_theta(self):
+        P = vec_random() * np.random.uniform(0,1e-7)
+        print P
+        self.check(P, True)
+    
+    def check(self, P, with_grad):
         rm, drm1, drm2, drm3 = rmdrvt(P, with_grad)
         rmp, drm1p, drm2p, drm3p = _rot_mat_derivative(P, with_grad)
+        print rm
+        print rmp
+        assert_array_almost_equal(rm, rmp, decimal=4)
+        assert_array_almost_equal(drm1, drm1p, decimal=4)
+        assert_array_almost_equal(drm2, drm2p, decimal=4)
+        assert_array_almost_equal(drm3, drm3p, decimal=4)
+    
+    def test_big_small(self):
+        P = vec_random()
+        P1 = P * (1.1e-6)
+        P2 = P * (0.9e-6)
+        print P1.dot(P1) > 1e-12, P2.dot(P2) > 1e-12
+
+        rm, drm1, drm2, drm3 = rmdrvt(P1, True)
+        rmp, drm1p, drm2p, drm3p = rmdrvt(P1, True)
+#        print rm
+#        print rmp
         assert_array_almost_equal(rm, rmp, decimal=4)
         assert_array_almost_equal(drm1, drm1p, decimal=4)
         assert_array_almost_equal(drm2, drm2p, decimal=4)
