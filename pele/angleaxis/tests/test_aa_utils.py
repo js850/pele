@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from pele.angleaxis._aadist import rmdrvt
+from pele.angleaxis._aadist import rmdrvt, sitedist_grad
 
 def _rot_mat_derivative(p, with_grad):
     """compute the derivative of a rotation matrix
@@ -80,7 +80,39 @@ def _rot_mat_derivative(p, with_grad):
     
     return rm, drm1, drm2, drm3
 
-    
+def _sitedist_grad(drij, p1, p2, S, W, cog):
+    """
+    Parameters
+    ----------
+    drij : length 3 array
+        shortest vector from com1 to com2
+    p1, p2 : length 3 array
+        angle axis vectors for the two rigid bodies
+    S : 3x3 array
+        weighted tensor of gyration S_ij = \sum m_i x_i x_j 
+    W : float
+        sum of all weights
+    cog : 3 dim np.array
+        center of gravity
+    """
+    R2 = _rot_mat_derivative(p2, False)[0]
+    R1, R11, R12, R13 = _rot_mat_derivative(p1, True)
+
+    dR = R2 - R1
+
+    g_M = -2. * W * drij
+
+    g_P = np.zeros(3)
+    g_P[0] = -2. * np.trace(np.dot(R11, np.dot(S, np.transpose(dR))))
+    g_P[1] = -2. * np.trace(np.dot(R12, np.dot(S, np.transpose(dR))))
+    g_P[2] = -2. * np.trace(np.dot(R13, np.dot(S, np.transpose(dR))))
+
+    g_M -= 2. * W *  np.dot(dR, cog)
+    g_P[0] -= 2. * W * np.dot(drij, np.dot(R11, cog))
+    g_P[1] -= 2. * W * np.dot(drij, np.dot(R12, cog))
+    g_P[2] -= 2. * W * np.dot(drij, np.dot(R13, cog))
+
+    return g_M, g_P
 
 class TestRmDrvt(unittest.TestCase):
     def test1(self):
@@ -95,7 +127,21 @@ class TestRmDrvt(unittest.TestCase):
         assert_array_almost_equal(drm1, drm1p, decimal=4)
         assert_array_almost_equal(drm2, drm2p, decimal=4)
         assert_array_almost_equal(drm3, drm3p, decimal=4)
+
+class TestSiteDistGrad(unittest.TestCase):
+    def test1(self):
+        from pele.utils.rotations import vec_random
+        drij = np.random.uniform(-1,1,3)
+        p1 = vec_random() * 0.5
+        p2 = vec_random() * 0.5
+        W = 1.3
+        S = np.random.uniform(-1,1,[3,3])
+        cog = np.random.uniform(-1,1,3)
         
+        g_M, g_P = sitedist_grad(drij, p1, p2, S, W, cog)
+        g_Mp, g_Pp = _sitedist_grad(drij, p1, p2, S, W, cog)
+        assert_array_almost_equal(g_M, g_Mp, decimal=4)
+        assert_array_almost_equal(g_P, g_Pp, decimal=4)
     
 if __name__ == "__main__":
     unittest.main()
