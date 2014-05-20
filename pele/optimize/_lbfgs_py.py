@@ -61,9 +61,6 @@ class LBFGS(object):
     armijo_c : float
         This adjusts how strong the armijo rule is.  0 < armijo_c < 1.  Default 
         1e-4
-    fortran : bool
-        use the fortran version of the LBFGS.  Only the step which computes
-        the step size and direction from the memory is in fortran.
          
     Notes
     -----
@@ -91,7 +88,6 @@ class LBFGS(object):
                  iprint=-1, nsteps=10000, tol=1e-5, logger=None,
                  energy=None, gradient=None, armijo=False, 
                  armijo_c=1e-4,
-                 fortran=False,
                  ):
         X = X.copy()
         self.X = X
@@ -102,8 +98,6 @@ class LBFGS(object):
         self._armijo = bool(armijo)
         self._wolfe1 = armijo_c
         self._wolfe2 = 0.99
-        self._cython = False # we could make this passable
-        self._fortran = bool(fortran)
         self.funcalls = 0
         if energy is not None and gradient is not None:
             self.energy = energy
@@ -238,25 +232,9 @@ class LBFGS(object):
         # increment k
         self.k += 1
            
-    def _get_LBFGS_step_cython(self, G):
-        import _cython_lbfgs
-        return _cython_lbfgs._compute_LBFGS_step(G, self.s, self.y, self.rho,
-                                                 self.k, self.H0)
-
-    def _get_LBFGS_step_fortran(self, G):
-        import mylbfgs_updatestep
-        ret = mylbfgs_updatestep.lbfgs_get_step_wrapper(G, self.s.reshape(-1), self.y.reshape(-1), self.rho,
-                                                 self.k, self.H0)
-        return ret 
-
-
     def _get_LBFGS_step(self, G):
         """use the LBFGS algorithm to compute a suggested step from the memory
         """
-        if self._cython:
-            return self._get_LBFGS_step_cython(G)
-        elif self._fortran:
-            return self._get_LBFGS_step_fortran(G)
         s = self.s
         y = self.y
         rho = self.rho
