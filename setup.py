@@ -48,7 +48,6 @@ if False:
 
 fmodules = ModuleList(extra_compile_args=extra_compile_args)
 fmodules.add_module("pele/mindist/minperm.f90")
-fmodules.add_module("pele/optimize/mylbfgs_updatestep.f90")
 fmodules.add_module("pele/potentials/fortran/AT.f90")
 fmodules.add_module("pele/potentials/fortran/ljpshiftfort.f90")
 fmodules.add_module("pele/potentials/fortran/scdiff_periodic.f90")

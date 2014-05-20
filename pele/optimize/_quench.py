@@ -9,12 +9,11 @@ scipy.minimize would do a similar thing
 
 import numpy as np
 
-from pele.optimize import LBFGS, MYLBFGS, Fire, Result, LBFGS_CPP, ModifiedFireCPP
+from pele.optimize import LBFGS, Fire, Result, LBFGS_CPP, ModifiedFireCPP
 from pele.potentials import BasePotential
 
 __all__ = ["lbfgs_scipy", "fire", "lbfgs_py", "mylbfgs", "cg", 
-           "steepest_descent", "bfgs_scipy", "lbfgs_cpp"]
-
+           "steepest_descent", "bfgs_scipy", "lbfgs_cpp"] 
 class _getEnergyGradientWrapper(BasePotential):
     """
     create a potential object from getEnergyGradient.  This is quite wasteful
@@ -202,13 +201,8 @@ def lbfgs_cpp(coords, pot, **kwargs):
     lbfgs = LBFGS_CPP(coords, pot, **kwargs)    
     return lbfgs.run()
 
-def mylbfgs(coords, pot, **kwargs):
-    if not hasattr(pot, "getEnergyGradient"):
-        # for compatibility with old quenchers.
-        # assume pot is a getEnergyGradient function
-        pot = _getEnergyGradientWrapper(pot)
-    lbfgs = MYLBFGS(coords, pot, **kwargs)
-    return lbfgs.run()
+# for backwards compatibility
+mylbfgs = lbfgs_py
 
 def modifiedfire_cpp(coords, pot, **kwargs):
     if not hasattr(pot, "getEnergyGradient"):

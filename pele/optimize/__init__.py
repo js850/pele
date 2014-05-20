@@ -84,8 +84,10 @@ These are not used very often and may be buggy.
 
 from result import *
 from _lbfgs_py import *
-from _mylbfgs import *
 from _fire import *
 from _modified_fire_cpp import ModifiedFireCPP
 from _lbfgs_cpp import LBFGS_CPP
 from _quench import *
+
+# for backwards compatibility
+MYLBFGS = LBFGS
