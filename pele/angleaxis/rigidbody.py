@@ -222,8 +222,8 @@ class RBPotentialWrapper(potential):
         E, g = self.pot.getEnergyGradient(coords.flatten())
         return E, self.rbsystem.transform_gradient(rbcoords, g)
     
-    
-if __name__ == "__main__":
+
+def test():
     from math import sin, cos, pi
     from copy import deepcopy
     water = RigidFragment()
@@ -285,3 +285,5 @@ if __name__ == "__main__":
     print system.transform_grad(rbcoords, gnew)
     
     
+if __name__ == "__main__":
+    test()
