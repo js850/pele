@@ -1,7 +1,8 @@
 import unittest
+from itertools import izip
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_almost_equal_nulp
 
 from pele.angleaxis._aadist import rmdrvt, sitedist_grad
 from pele.utils.rotations import vec_random
@@ -21,6 +22,7 @@ def _rot_mat_derivative_small_theta(p, with_grad):
     rm[0,2] = -p[1]
     rm[2,1] = -p[0]
     rm[1,2] = p[0]
+    rm = rm.transpose()
 
     #        If derivatives do not need to found, we're finished
     if not with_grad: 
@@ -37,7 +39,7 @@ def _rot_mat_derivative_small_theta(p, with_grad):
     e[0,2]    = p[2]
     e[1,2]    = 2.0
     e[2,2]    = -2.0*p[0]
-    drm1 = 0.5*e
+    drm1 = 0.5*e.transpose()
 
     e[:]    = 0.
     e[0,0]    = -2.0*p[1]
@@ -49,7 +51,7 @@ def _rot_mat_derivative_small_theta(p, with_grad):
     e[0,2]    = -2.0
     e[1,2]    = p[2]
     e[2,2]    = -2.0*p[1]
-    drm2 = 0.5*e
+    drm2 = 0.5*e.transpose()
 
     e[:] = 0
     e[0,0]    = -2.0*p[2]
@@ -61,7 +63,7 @@ def _rot_mat_derivative_small_theta(p, with_grad):
     e[0,2]    = p[0]
     e[1,2]    = p[1]
     e[2,2]    = 0.0
-    drm3 = 0.5*e
+    drm3 = 0.5*e.transpose()
     
     return rm, drm1, drm2, drm3
     
@@ -179,6 +181,10 @@ def _sitedist_grad(drij, p1, p2, S, W, cog):
     return g_M, g_P
 
 class TestRmDrvt(unittest.TestCase):
+    def assert_array_almost_equal(self, v1, v2, **kwargs):
+        for x1, x2 in izip(v1.reshape(-1), v2.reshape(-1)):
+            self.assertAlmostEqual(x1, x2, **kwargs)
+        
     def test1(self):
         P = vec_random() * np.random.uniform(1e-5,1)
         self.check(P, True)
@@ -191,29 +197,35 @@ class TestRmDrvt(unittest.TestCase):
     def check(self, P, with_grad):
         rm, drm1, drm2, drm3 = rmdrvt(P, with_grad)
         rmp, drm1p, drm2p, drm3p = _rot_mat_derivative(P, with_grad)
-        print rm
-        print rmp
-        assert_array_almost_equal(rm, rmp, decimal=4)
-        assert_array_almost_equal(drm1, drm1p, decimal=4)
-        assert_array_almost_equal(drm2, drm2p, decimal=4)
-        assert_array_almost_equal(drm3, drm3p, decimal=4)
+        print rm, rmp
+        print "rm ", rm
+        print "rmp", rmp
+        print np.abs(rm - rmp)/np.abs(rm)
+        self.assert_array_almost_equal(rm, rmp)
+        self.assert_array_almost_equal(drm1, drm1p, places=4)
+        self.assert_array_almost_equal(drm2, drm2p, places=4)
+        self.assert_array_almost_equal(drm3, drm3p, places=4)
     
     def test_big_small(self):
         P = vec_random()
         P1 = P * (1.1e-6)
         P2 = P * (0.9e-6)
-        print P1.dot(P1) > 1e-12, P2.dot(P2) > 1e-12
+#        print P1.dot(P1) > 1e-12, P2.dot(P2) > 1e-12
 
         rm, drm1, drm2, drm3 = rmdrvt(P1, True)
         rmp, drm1p, drm2p, drm3p = rmdrvt(P1, True)
 #        print rm
 #        print rmp
-        assert_array_almost_equal(rm, rmp, decimal=4)
-        assert_array_almost_equal(drm1, drm1p, decimal=4)
-        assert_array_almost_equal(drm2, drm2p, decimal=4)
-        assert_array_almost_equal(drm3, drm3p, decimal=4)
+        self.assert_array_almost_equal(rm, rmp, places=4)
+        self.assert_array_almost_equal(drm1, drm1p, places=4)
+        self.assert_array_almost_equal(drm2, drm2p, places=4)
+        self.assert_array_almost_equal(drm3, drm3p, places=4)
 
 class TestSiteDistGrad(unittest.TestCase):
+    def assert_array_almost_equal(self, v1, v2, **kwargs):
+        for x1, x2 in izip(v1.reshape(-1), v2.reshape(-1)):
+            self.assertAlmostEqual(x1, x2, **kwargs)
+        
     def test1(self):
         from pele.utils.rotations import vec_random
         drij = np.random.uniform(-1,1,3)
@@ -225,8 +237,22 @@ class TestSiteDistGrad(unittest.TestCase):
         
         g_M, g_P = sitedist_grad(drij, p1, p2, S, W, cog)
         g_Mp, g_Pp = _sitedist_grad(drij, p1, p2, S, W, cog)
-        assert_array_almost_equal(g_M, g_Mp, decimal=4)
-        assert_array_almost_equal(g_P, g_Pp, decimal=4)
-    
+        self.assert_array_almost_equal(g_M, g_Mp, places=4)
+        self.assert_array_almost_equal(g_P, g_Pp, places=4)
+
+    def test2(self):
+        # rotate around the z axis by pi/2
+        P = np.array([0., 0., 1.]) * np.pi/2
+        v1 = np.array([1.,0,0])
+        rm = _rot_mat_derivative(P, False)[0]
+#        rm = rmdrvt(P, False)[0]
+        v2 = rm.dot(v1)
+        v2_true = np.array([0.,1,0])
+        print rm
+        print v1
+        print v2
+        print v2
+        self.assert_array_almost_equal(v2, v2_true)
+
 if __name__ == "__main__":
     unittest.main()
