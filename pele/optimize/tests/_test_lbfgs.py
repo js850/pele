@@ -1,6 +1,6 @@
 import unittest
 
-from pele.optimize import LBFGS, MYLBFGS
+from pele.optimize import LBFGS
 from pele.systems import LJCluster
 
 class TestLBFGS_State(unittest.TestCase):

@@ -67,7 +67,7 @@ class LJpshift(BasePotential):
         return E, V
 
 
-if __name__ == "__main__":
+def test():
     import pele.potentials.ljpshift as ljpshift
     from pele.optimize import mylbfgs
     fname = "/scratch/scratch2/js850/library/cluster/spherical/1620/PTMC/q4/oneatom/cavity200-8/ts/coords1.quench"
@@ -120,7 +120,6 @@ if __name__ == "__main__":
     blj.test_potential(coords, eps=1e-6)
 
 
-    
-
-
+if __name__ == "__main__":
+    test()
 

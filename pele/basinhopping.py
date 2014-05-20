@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 import sys
 from pele.mc import MonteCarlo
-from pele.optimize import mylbfgs
+from pele.optimize import lbfgs_cpp
 
 class BasinHopping(MonteCarlo):
     """
@@ -38,7 +38,7 @@ class BasinHopping(MonteCarlo):
                             store_initial=False)
 
         if quench is None:
-            quench = lambda coords : mylbfgs(coords, self.potential)
+            quench = lambda coords : lbfgs_cpp(coords, self.potential)
         self.quench = quench
                 
         #########################################################################

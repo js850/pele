@@ -30,8 +30,8 @@ class TestMinimizers_NFEV(unittest.TestCase):
         self.x0 = self.system.get_random_configuration()
         
         self.minimizers = [_quench.lbfgs_py,
-                           _quench.mylbfgs,
                            _quench.lbfgs_scipy,
+                           _quench.lbfgs_cpp,
                            ]
         
     
@@ -46,7 +46,7 @@ class TestMinimizers_NFEV(unittest.TestCase):
         self.do_check(_quench.lbfgs_py)
 
     def test2(self):
-        self.do_check(_quench.mylbfgs)
+        self.do_check(_quench.lbfgs_cpp)
 
     def test3(self):
         self.do_check(_quench.fire)

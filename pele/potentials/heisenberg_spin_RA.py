@@ -162,8 +162,8 @@ def test():
             #print cos(coords)
     
     print "try a quench"
-    from pele.optimize import mylbfgs
-    ret = mylbfgs(coords, pot)
+    from pele.optimize import lbfgs_cpp
+    ret = lbfgs_cpp(coords, pot)
     
     print "quenched e = ", ret.energy, "funcalls", ret.nfev
     print ret.coords

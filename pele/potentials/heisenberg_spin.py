@@ -316,8 +316,8 @@ def test():
 
     
     print "try a quench"
-    from pele.optimize import mylbfgs
-    ret = mylbfgs(coords, pot, iprint=1)
+    from pele.optimize import lbfgs_cpp
+    ret = lbfgs_cpp(coords, pot, iprint=1)
     
     print "quenched e = ", ret.energy, "funcalls", ret.nfev
     print ret.coords

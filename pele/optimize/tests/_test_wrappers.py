@@ -43,12 +43,6 @@ class TestMinimizers(unittest.TestCase):
         self.assertAlmostEqual(self.E, res.energy, 4)
         self.check_attributes(res)
         
-    def test_mylbfgs(self):
-        res = _quench.mylbfgs(self.x0, self.pot, tol=1e-7)
-        self.assertTrue(res.success)
-        self.assertAlmostEqual(self.E, res.energy, 4)
-        self.check_attributes(res)
-    
     def test_fire(self):
         res = _quench.fire(self.x0, self.pot, tol=1e-7)
         self.assertTrue(res.success)

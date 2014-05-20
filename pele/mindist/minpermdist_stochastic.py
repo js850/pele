@@ -206,12 +206,12 @@ def test(X1, X2, lj, atomtypes=["LA"], fname = "lj.xyz",
             
 def test_LJ(natoms = 12, **kwargs):
     from pele.potentials.lj import LJ
-    from pele.optimize import mylbfgs
+    from pele.optimize import lbfgs_py
     import pele.utils.rotations as rot
     from pele.mindist.permutational_alignment import permuteArray
     import random
     
-    quench = mylbfgs
+    quench = lbfgs_py
     lj = LJ()
     X1 = np.random.uniform(-1,1,[natoms*3])*(float(natoms))**(1./3)
     #quench X1

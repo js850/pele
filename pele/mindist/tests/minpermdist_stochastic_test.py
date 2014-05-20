@@ -3,7 +3,7 @@ import numpy as np
 from testmindist import TestMinDist
 from pele.mindist.minpermdist_stochastic import MinPermDistCluster
 from pele.mindist._minpermdist_policies import MeasureAtomicCluster
-from pele.optimize import mylbfgs
+from pele.optimize import lbfgs_cpp
 
 class TestMinPermDistStochastic_BLJ(TestMinDist):
     def setUp(self):
@@ -17,7 +17,7 @@ class TestMinPermDistStochastic_BLJ(TestMinDist):
         self.X1 = np.random.uniform(-1,1,[self.natoms*3])*(float(self.natoms))**(1./3)/2
         
         #run a quench so the structure is not crazy
-        ret = mylbfgs(self.X1, self.pot)
+        ret = lbfgs_cpp(self.X1, self.pot)
         self.X1 = ret.coords
         
 
@@ -26,7 +26,7 @@ class TestMinPermDistStochastic_BLJ(TestMinDist):
         X2 = np.random.uniform(-1,1,[self.natoms*3])*(float(self.natoms))**(1./3)/2
         
         #run a quench so the structure is not crazy
-        ret = mylbfgs(X2, self.pot)
+        ret = lbfgs_cpp(X2, self.pot)
         X2 = ret.coords
 
         self.runtest(X1, X2, MinPermDistCluster(measure=MeasureAtomicCluster(permlist=self.permlist)))

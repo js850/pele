@@ -26,9 +26,6 @@ class TestOptimizersBeale(unittest.TestCase):
     def test_lbfgs_cpp(self):
         self.do_check(_quench.lbfgs_cpp)
 
-    def test_mylbfgs(self):
-        self.do_check(_quench.mylbfgs)
-
     def test_fire(self):
         self.do_check(_quench.fire, tol=1e-7)
 

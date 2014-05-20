@@ -8,8 +8,6 @@ from pele.takestep import RotationalDisplacement
 from pele.systems import BaseSystem, dict_copy_update, BaseParameters
 from pele.transition_states import NEB, InterpolatedPathDensity
 
-from pele.optimize import fire, mylbfgs
-
 from pele.angleaxis.aamindist import *
 from pele.angleaxis import MinPermDistAACluster, ExactMatchAACluster
 from pele.angleaxis import TakestepAA
