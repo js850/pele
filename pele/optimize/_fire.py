@@ -86,7 +86,6 @@ class Fire(object):
     See Also
     --------
     LBFGS
-    MYLBFGS
     '''
     def __init__(self, coords, potential, restart=None, logfile='-', trajectory=None,
                  dt=0.1, maxstep=0.5, dtmax=1., Nmin=5, finc=1.1, fdec=0.5,

@@ -7,7 +7,7 @@ class TestATLJ(unittest.TestCase):
         natoms = 10
         coords = np.random.uniform(-1,1,natoms*3)*2
         
-        from pele.optimize import mylbfgs as quench
+        from pele.optimize import lbfgs_cpp as quench
         lj = LJ()
         ret = quench(coords, lj)
         coords = ret.coords

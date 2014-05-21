@@ -17,7 +17,7 @@ def findTransitionState_dimer(x0, potential, direction=None, tol=1.0e-6, maxstep
     #search.findNextTS(direction)
     #search.findNextTS(direction)
     x, E, rms, tmp = fire(x0, search.getEnergyGradient, tol=tol, maxstep=maxstep, iprint=iprint) 
-    #x, E, rms, tmp = quench.mylbfgs(x0, search.getEnergyGradient, tol=tol, maxstep=maxstep, maxErise=1000.)
+    #x, E, rms, tmp = quench.lbfgs_cpp(x0, search.getEnergyGradient, tol=tol, maxstep=maxstep, maxErise=1000.)
         
     from collections import namedtuple
     return namedtuple("TransitionStateResults", "coords,energy,eigenval,eigenvec,rms")(x, E, 0.0, search.tau, rms)

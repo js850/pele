@@ -94,8 +94,8 @@ def test():
     
     
     #try a quench
-    from pele.optimize import mylbfgs
-    ret = mylbfgs(angles, pot)
+    from pele.optimize import lbfgs_cpp
+    ret = lbfgs_cpp(angles, pot)
     
     print "quenched e = ", ret.energy
     print ret.coords

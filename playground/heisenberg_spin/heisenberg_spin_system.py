@@ -256,7 +256,6 @@ def test_pot():
     print opt
     from pele.optimize import lbfgs_py as optimizer
     from pele.optimize import lbfgs_cpp as optimizer
-    from pele.optimize import mylbfgs as optimizer
     opt = lambda coords: optimizer(coords, system.get_potential(), iprint=1)
     ret = opt(x)
     xnew = ret.coords

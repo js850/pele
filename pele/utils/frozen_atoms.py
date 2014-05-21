@@ -335,7 +335,7 @@ class FrozenPotWrapper(object):
             import numpy as np
             from pele.potentials import LJ
             from pele.utils.frozen_atoms import FrozenPotWrapper
-            from pele.optimize import mylbfgs
+            from pele.optimize import lbfgs_cpp
             natoms = 4
             pot = LJ()
             
@@ -354,7 +354,7 @@ class FrozenPotWrapper(object):
             print "is the same as the energy in the reduced representation:"
             print fpot.getEnergy(reduced_coords)
             
-            ret = mylbfgs(reduced_coords, fpot)
+            ret = lbfgs_cpp(reduced_coords, fpot)
             print "after a minimization the energy is ", ret.energy, "and the rms gradient is", ret.rms
             print "the coordinates of the frozen degrees of freedom are unchanged"
             print "starting coords:", reference_coords
@@ -394,7 +394,7 @@ class FrozenPotWrapper(object):
 
 def test(natoms = 40, boxl=4.):
     import pele.potentials.ljpshiftfast as ljpshift
-    from pele.optimize import mylbfgs
+    from pele.optimize import lbfgs_cpp
     from pele.utils.neighbor_list import makeBLJNeighborListPot
     ntypeA = int(natoms*0.8)
     ntypeB = natoms - ntypeA
@@ -423,10 +423,10 @@ def test(natoms = 40, boxl=4.):
     pot.test_potential(coords)
     print "\n"
     
-    ret1 = mylbfgs(coords, blj, iprint=-11)
+    ret1 = lbfgs_cpp(coords, blj, iprint=-11)
     np.savetxt("out.coords", ret1.coords)
     print "energy from quench1", ret1.energy
-    ret2 = mylbfgs(coords, pot, iprint=-1)
+    ret2 = lbfgs_cpp(coords, pot, iprint=-1)
     print "energy from quench2", ret2.energy
     
     print "ret1 evaluated in both potentials", pot.getEnergy(ret1.coords), blj.getEnergy(ret1.coords)
@@ -458,7 +458,7 @@ def test2():
     import numpy as np
     from pele.potentials import LJ
     from pele.utils.frozen_atoms import FrozenPotWrapper
-    from pele.optimize import mylbfgs
+    from pele.optimize import lbfgs_cpp
     natoms = 4
     pot = LJ()
     
@@ -477,7 +477,7 @@ def test2():
     print "is the same as the energy in the reduced representation:"
     print fpot.getEnergy(reduced_coords)
     
-    ret = mylbfgs(reduced_coords, fpot)
+    ret = lbfgs_cpp(reduced_coords, fpot)
     print "after a minimization the energy is ", ret.energy, "and the rms gradient is", ret.rms
     print "the coordinates of the frozen degrees of freedom are unchanged"
     print "starting coords:", reference_coords

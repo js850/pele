@@ -69,7 +69,7 @@ class LJpshift(BasePotential):
 
 def test():
     import pele.potentials.ljpshift as ljpshift
-    from pele.optimize import mylbfgs
+    from pele.optimize import lbfgs_cpp
     fname = "/scratch/scratch2/js850/library/cluster/spherical/1620/PTMC/q4/oneatom/cavity200-8/ts/coords1.quench"
     fname = "/scratch/scratch2/js850/library/cluster/spherical/1620/PTMC/q4/oneatom/cavity200-8/ts/test.coords"
     #fname = "out.coords"
@@ -99,7 +99,7 @@ def test():
     print ""
     
     print "partially quenching coords"
-    ret1 = mylbfgs(coords, blj, iprint=-11, tol=1.)
+    ret1 = lbfgs_cpp(coords, blj, iprint=-11, tol=1.)
     coords = ret1.coords
     ebljslow = bljslow.getEnergy(coords)
     print "blj energy slow", ebljslow
@@ -111,7 +111,7 @@ def test():
 
     
     print "quenching coords"
-    ret1 = mylbfgs(coords, blj, iprint=-11)
+    ret1 = lbfgs_cpp(coords, blj, iprint=-11)
     coords = ret1.coords
     ebljslow = bljslow.getEnergy(coords)
     print "blj energy slow", ebljslow

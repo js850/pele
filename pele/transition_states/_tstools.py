@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 
-from pele.optimize import mylbfgs
+from pele.optimize import lbfgs_cpp
 
 __all__ = ["minima_from_ts"]
 
@@ -73,7 +73,7 @@ def minima_from_ts(pot, xt, n=None, quench=None, **kwargs):
         n = np.random.random(xt.shape)-0.5
     
     if quench is None:
-        quench = lambda coords : mylbfgs(coords, pot)        
+        quench = lambda coords : lbfgs_cpp(coords, pot)        
     
     #x1 = xt - displace*n
     x1 = determinePushoff(pot, xt, n, **kwargs)

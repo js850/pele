@@ -72,7 +72,7 @@ def main():
     print V
 
     print "try a quench"
-    from pele.optimize import mylbfgs as quench
+    from pele.optimize import lbfgs_cpp as quench
     quench( coords, lj, iprint=1 )
     #quench( coords, lj.getEnergyGradientNumerical, iprint=1 )
 

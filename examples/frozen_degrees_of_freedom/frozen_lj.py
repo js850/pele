@@ -5,7 +5,7 @@ an example
 import numpy as np
 from pele.potentials import LJ
 from pele.utils.frozen_atoms import FrozenPotWrapper
-from pele.optimize import mylbfgs
+from pele.optimize import lbfgs_cpp
 
 def main():
     natoms = 4
@@ -26,7 +26,7 @@ def main():
     print "is the same as the energy in the reduced representation:"
     print fpot.getEnergy(reduced_coords)
     
-    ret = mylbfgs(reduced_coords, fpot)
+    ret = lbfgs_cpp(reduced_coords, fpot)
     print "after a minimization the energy is ", ret.energy, "and the rms gradient is", ret.rms
     print "the coordinates of the frozen degrees of freedom are unchanged"
     print "starting coords:", reference_coords

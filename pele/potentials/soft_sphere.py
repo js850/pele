@@ -59,7 +59,7 @@ def test_soft_sphere(natoms = 9):
     printlist.append((coords.copy(), "intial coords"))
     
     #test a quench with default lbfgs
-    from pele.optimize import mylbfgs as quench
+    from pele.optimize import lbfgs_cpp as quench
     res = quench(coords, pot, iprint=-1)
     printlist.append((res.coords.copy(), "intial coords"))
     print "energy post quench", pot.getEnergy(coords)

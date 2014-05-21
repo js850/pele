@@ -4,7 +4,7 @@ import copy
 import logging
 
 from pele.optimize import Result
-from pele.optimize import mylbfgs
+from pele.optimize import lbfgs_cpp
         
 __all__ = ["NEB",]
 
@@ -159,7 +159,7 @@ class NEB(object):
         maxErise, or by using an optimizer that uses only gradients.
 
         scipy.lbfgs_b seems to work with NEB pretty well, but lbfgs_py and
-        mylbfgs tend to fail.  If you must use one of those try, e.g.
+        lbfgs_cpp tend to fail.  If you must use one of those try, e.g.
         maxErise = 1., maxstep=0.01, tol=1e-2
 
         :quenchRoutine: quench algorithm to use for optimization.
@@ -167,7 +167,7 @@ class NEB(object):
         :quenchParams: parameters for the quench """ 
         if quenchRoutine is None:
             if self.quenchRoutine is None:
-                quenchRoutine = mylbfgs
+                quenchRoutine = lbfgs_cpp
             else:
                 quenchRoutine = self.quenchRoutine  
         #combine default and passed params.  passed params will overwrite default 

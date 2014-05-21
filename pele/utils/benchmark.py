@@ -89,8 +89,8 @@ if __name__ == "__main__":
     
     bench = QuenchBenchmark(pot)
     bench.addMinimizer("lbfgs", quench.lbfgs_scipy)
-    bench.addMinimizer("mylbfgs", quench.mylbfgs)
     bench.addMinimizer("lbfgs_py", quench.lbfgs_py)
+    bench.addMinimizer("lbfgs_cpp", quench.lbfgs_cpp)
     #bench.addMinimizer("lbfgs_ase", quench.lbfgs_ase)
     bench.addMinimizer("cg", quench.cg)
     bench.addMinimizer("fire", quench.fire)

@@ -10,7 +10,7 @@ from pele.optimize import Result
 from pele.transition_states import orthogopt
 from pele.potentials.potential import BasePotential
 #from pele.optimize.lbfgs_py import LBFGS
-from pele.optimize import MYLBFGS, LBFGS
+from pele.optimize import LBFGS
 import pele.utils.rotations as rotations
 
 __all__ = ["findLowestEigenVector", "analyticalLowestEigenvalue", "FindLowestEigenVector"]
@@ -207,7 +207,7 @@ class FindLowestEigenVector(object):
         self.eigpot = LowestEigPot(coords, pot, orthogZeroEigs=orthogZeroEigs, dx=dx,
                                    gradient=gradient,
                                    first_order=first_order)
-        self.minimizer = MYLBFGS(eigenvec0, self.eigpot, rel_energy=True, 
+        self.minimizer = LBFGS(eigenvec0, self.eigpot, rel_energy=True, 
                                  **self.minimizer_kwargs)
 
     def stop_criterion_satisfied(self):
@@ -219,7 +219,7 @@ class FindLowestEigenVector(object):
         self.eigpot.update_coords(coords, gradient=gradient)
         state = self.minimizer.get_state()
         ret = self.get_result()
-        self.minimizer = MYLBFGS(ret.eigenvec, self.eigpot, rel_energy=True,
+        self.minimizer = LBFGS(ret.eigenvec, self.eigpot, rel_energy=True,
                                  **self.minimizer_kwargs)
         self.minimizer.set_state(state)
     

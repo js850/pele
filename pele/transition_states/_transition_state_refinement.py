@@ -2,8 +2,7 @@ import numpy as np
 import copy
 import logging
 
-from pele.optimize import Result, MYLBFGS, LBFGS
-from pele.optimize import mylbfgs
+from pele.optimize import Result
 from pele.potentials.potential import BasePotential
 from pele.transition_states import findLowestEigenVector, FindLowestEigenVector
 from pele.transition_states._dimer_translator import _DimerTranslator
@@ -128,7 +127,6 @@ class FindTransitionState(object):
         self.lowestEigenvectorQuenchParams = lowestEigenvectorQuenchParams
         self.max_uphill_step = max_uphill_step
         self.verbosity = verbosity
-        self.tangent_space_quencher = mylbfgs #  should make this passable
         self.tangent_space_quench_params = dict(tangentSpaceQuenchParams.items())
         self.demand_initial_negative_vec = demand_initial_negative_vec    
         self.npositive_max = max(10, self.nsteps / 5)

@@ -91,7 +91,7 @@ for i in xrange(1,len(path)):
 traj = open("traj.xyz", "w")
 #for x in path:
 #    #export_xyz(traj, x)
-#    #ret = quench.mylbfgs(x, pot.getEnergyGradient)
+#    #ret = quench.lbfgs_cpp(x, pot.getEnergyGradient)
 #    #print i,pot.getEnergy(x), ret[1]
 #    
 #    # export_xyz(traj, ret[0])

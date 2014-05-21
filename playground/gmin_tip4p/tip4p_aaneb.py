@@ -6,7 +6,7 @@ from pele.takestep import buildingblocks
 from pele.transition_states import NEB
 import pylab as pl
 from copy import deepcopy, copy
-from pele.optimize import mylbfgs
+from pele.optimize import lbfgs_cpp
 from pele.angleaxis import RigidFragment, RBSystem
 import tip4p
 from tip4p import dump_path
@@ -31,7 +31,7 @@ system.add_sites([deepcopy(water) for i in xrange(nrigid)])
 ca = system.coords_adapter(coords)
 
 #buildingblocks.rotate(3.0, ca.rotRigid[-1:])
-#ret = mylbfgs(coords, pot.getEnergyGradient, iprint=0)
+#ret = lbfgs_cpp(coords, pot.getEnergyGradient, iprint=0)
 #coords2 = ret[0]
 #np.savetxt("coords1_2.txt", coords1)
 #np.savetxt("coords2_2.txt", coords2)
@@ -46,7 +46,7 @@ NEBquenchParams["iprint"] = 1
 NEBquenchParams["maxstep"] = 0.1
 NEBquenchParams["maxErise"] = 0.1
 NEBquenchParams["tol"] = 1e-6
-NEBquenchRoutine = mylbfgs
+NEBquenchRoutine = lbfgs_cpp
 decp = dict()
 decp["local_connect_params"] = dict()
 decp["local_connect_params"]["NEBparams"] = dict()

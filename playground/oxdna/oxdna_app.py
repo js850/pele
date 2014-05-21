@@ -8,7 +8,7 @@ from math import pi
 from pele.utils.rbtools import CoordsAdapter
 from pele.utils import rotations
 from pele.systems.oxdna import *
-from pele.optimize import mylbfgs 
+from pele.optimize import lbfgs_cpp 
 
 EDIFF=0.01
 t0=time.clock()
@@ -21,13 +21,13 @@ class AppOXDNA(AppBasinHopping):
     
     def __init__(self, *args, **kwargs):
         AppBasinHopping.__init__(self, *args, **kwargs)
-        self.quenchRoutine = mylbfgs
+        self.quenchRoutine = lbfgs_cpp
         self.potential = GMINPotential(GMIN)
         
         self.quenchParameters["tol"]=1e-4
         self.quenchParameters["M"]=80
         self.quenchParameters["maxErise"]=0.1
-        self.quenchRoutine=mylbfgs
+        self.quenchRoutine=lbfgs_cpp
 
         
     # create potentia which calls GMIN

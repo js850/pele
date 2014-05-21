@@ -4,7 +4,7 @@ routines for a generalized hybrid eigenvector following
 import numpy as np
 
 from pele.transition_states._transverse_walker import _TransversePotential
-from pele.optimize import MYLBFGS, Result
+from pele.optimize import LBFGS, Result
 
 class _HybridEigenvectorWalker(object):
     """a class to perform the translational steps in hybrid eigenvector following
@@ -38,7 +38,7 @@ class _HybridEigenvectorWalker(object):
 
         self.transverse_potential = _TransversePotential(potential, eigenvec)
         self.update_eigenvec(eigenvec, eigenval)
-#        self.transverse_walker = MYLBFGS(self.coords, self.potential, **transverse_kwargs)
+#        self.transverse_walker = LBFGS(self.coords, self.potential, **transverse_kwargs)
         self._transverse_walker_state = None
         
 #        self.energy, self.grad = self.potential.getEnergyGradient(self.coords)
@@ -106,7 +106,7 @@ class _HybridEigenvectorWalker(object):
     
     def _minimize_transverse(self, nsteps, transverse_energy=None, transverse_gradient=None):
         # must update
-        minimizer = MYLBFGS(self.coords, self.transverse_potential,
+        minimizer = LBFGS(self.coords, self.transverse_potential,
                             nsteps=self.nsteps_tangent,
                             energy=transverse_energy, gradient=transverse_gradient,
                             **self.transverse_kwargs)

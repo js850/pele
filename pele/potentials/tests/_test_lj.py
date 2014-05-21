@@ -36,11 +36,11 @@ class TestLJAfterQuench(unittest.TestCase):
     """do the tests after a short quench so that the energies are not crazy large
     """ 
     def setUp(self):
-        from pele.optimize import mylbfgs
+        from pele.optimize import lbfgs_cpp
         self.natoms = 10
         self.coords = np.random.uniform(-1,1.,3*self.natoms) * self.natoms**(-1./3)
         self.pot = LJ()
-        ret = mylbfgs(self.coords, self.pot, tol=2.)
+        ret = lbfgs_cpp(self.coords, self.pot, tol=2.)
         self.coords = ret.coords
         self.E = self.pot.getEnergy(self.coords)
         self.Egrad, self.grad = self.pot.getEnergyGradient(self.coords)

@@ -5,7 +5,6 @@ an example
 import numpy as np
 from pele.potentials import LJ
 from pele.utils.frozen_atoms import FrozenPotWrapper
-from pele.optimize import mylbfgs
 from pele.systems import LJCluster
 from pele.mindist import optimize_permutations
 

@@ -37,8 +37,8 @@ print "energy ", e
 
 #try a quench
 if False:
-    from pele.optimize import mylbfgs
-    ret = mylbfgs(angles, pot)
+    from pele.optimize import lbfgs_cpp
+    ret = lbfgs_cpp(angles, pot)
     
     print ret
 

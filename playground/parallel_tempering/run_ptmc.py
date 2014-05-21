@@ -6,7 +6,7 @@ from pele.takestep import RandomDisplacement, AdaptiveStepsize
 from ptmc import PTMC, getTemps
 import copy
 from pele.utils.histogram import EnergyHistogram, PrintHistogram
-from pele.optimize import mylbfgs as quench
+from pele.optimize import lbfgs_cpp as quench
 from pele.accept_tests.spherical_container import SphericalContainer
 
 def runptmc(nsteps_tot = 100000):

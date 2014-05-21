@@ -571,7 +571,7 @@ def makeBLJNeighborListPot(natoms, ntypeA = None, rcut = 2.5, boxl=None):
 
 def test(natoms = 40, boxl=None):
     import pele.potentials.ljpshiftfast as ljpshift
-    from pele.optimize import mylbfgs
+    from pele.optimize import lbfgs_cpp
     ntypeA = int(natoms*0.8)
     rcut = 2.5
     coords = np.random.uniform(-1,1,natoms*3)*(natoms)**(1./3)/2
@@ -590,10 +590,10 @@ def test(natoms = 40, boxl=None):
     
     print "difference", (epot - eblj)/eblj
     
-    ret1 = mylbfgs(coords, blj, iprint=-11)
+    ret1 = lbfgs_cpp(coords, blj, iprint=-11)
     np.savetxt("out.coords", ret1.coords)
     print "energy from quench1", ret1.energy
-    ret2 = mylbfgs(coords, pot, iprint=-1)
+    ret2 = lbfgs_cpp(coords, pot, iprint=-1)
     print "energy from quench2", ret2.energy
     
     print "ret1 evaluated in both potentials", pot.getEnergy(ret1.coords), blj.getEnergy(ret1.coords)
@@ -624,7 +624,7 @@ def test(natoms = 40, boxl=None):
 def test2():
     import pele.potentials.ljpshiftfast as ljpshiftfast
     import pele.potentials.ljpshift as ljpshift
-    from pele.optimize import mylbfgs
+    from pele.optimize import lbfgs_cpp
     fname = "/scratch/scratch2/js850/library/cluster/spherical/1620/PTMC/q4/oneatom/cavity200-8/ts/coords1.quench"
     fname = "/scratch/scratch2/js850/library/cluster/spherical/1620/PTMC/q4/oneatom/cavity200-8/ts/test.coords"
     #fname = "out.coords"
@@ -664,10 +664,10 @@ def test2():
     
     if False:
         print "quenching"
-        ret1 = mylbfgs(coords, blj, iprint=-11)
+        ret1 = lbfgs_cpp(coords, blj, iprint=-11)
         np.savetxt("out.coords", ret1.coords)
         print "energy from quench1", ret1.energy
-        ret2 = mylbfgs(coords, pot, iprint=-1)
+        ret2 = lbfgs_cpp(coords, pot, iprint=-1)
         print "energy from quench2", ret2.energy
         print "max, min quenched coords", coords.max(), coords.min()
 
@@ -676,7 +676,7 @@ def test2():
         print "ret2 evaluated in both potentials", pot.getEnergy(ret2.coords), blj.getEnergy(ret2.coords)
     elif True:
         print "quenching"
-        ret2 = mylbfgs(coords, pot, iprint=-1)
+        ret2 = lbfgs_cpp(coords, pot, iprint=-1)
         print "energy from quench2", ret2.energy
         print "max, min quenched coords", ret2.coords.max(), ret2.coords.min()
 
