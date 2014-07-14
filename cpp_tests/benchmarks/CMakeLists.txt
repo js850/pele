@@ -17,3 +17,6 @@ add_library(pele_lib ${pele_sources})
 
 add_executable(lj_looping lj_looping.cpp)
 target_link_libraries(lj_looping pele_lib)
+
+add_executable(array_indexing array_indexing.cpp)
+target_link_libraries(array_indexing pele_lib)

@@ -101,7 +101,7 @@ public:
     }
 };
 
-void bench(pele::BasePotential * pot, Array<double> x, size_t const N=50000)
+void bench(std::shared_ptr<pele::BasePotential> pot, Array<double> x, size_t const N=50000)
 {
     auto g = x.copy();
     clock_t t0 = clock();
@@ -113,7 +113,7 @@ void bench(pele::BasePotential * pot, Array<double> x, size_t const N=50000)
 
 int main()
 {
-    pele::LJ lj(1., 1.);
+    auto lj = std::shared_ptr<pele::BasePotential> (new pele::LJ(4., 4.));
 
     size_t natoms = 100;
     pele::Array<double> x(3*natoms);
@@ -121,19 +121,19 @@ int main()
         x[i] = (double) i / 2;
     }
 
-    pele::LBFGS lbfgs((pele::BasePotential *) &lj, x);
+    pele::LBFGS lbfgs(lj, x);
     lbfgs.run();
     x= lbfgs.get_x();
 
-    bench(&lj, x);
+    bench(lj, x);
 
-    auto pot1 = SimplePairwisePotential1<lj_interaction>(
-            std::make_shared<lj_interaction>(1., 1.));
-    bench(&pot1, x);
+    auto pot1 = std::shared_ptr<pele::BasePotential>(new SimplePairwisePotential1<lj_interaction>(
+            std::make_shared<lj_interaction>(4., 4.)));
+    bench(pot1, x);
 
-    auto pot2 = SPP2<lj_interaction>(
-            std::make_shared<lj_interaction>(1., 1.));
-    bench(&pot2, x);
+    auto pot2 = std::shared_ptr<pele::BasePotential>(new SPP2<lj_interaction>(
+            std::make_shared<lj_interaction>(4., 4.)));
+    bench(pot2, x);
 
 
 }
