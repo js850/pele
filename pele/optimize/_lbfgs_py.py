@@ -212,6 +212,7 @@ class LBFGS(object):
         self.y[klocal,:] = dG
         
         # the local curvature along direction s is np.dot(y, s) / norm(s)
+        #js850 print "dx dg for YS", dX[0], dG[0]
         YS = np.dot(dX, dG)
         if YS == 0.:
             self.logger.warning("resetting YS to 1 in lbfgs %s", YS)
@@ -234,7 +235,7 @@ class LBFGS(object):
             self.logger.warning("warning: resetting YY to 1 in lbfgs %s", YY)
             YY = 1.
         self.H0 = YS / YY
-        
+        #js850 print "YS YY", YS, YY
         # increment k
         self.k += 1
            
@@ -261,12 +262,12 @@ class LBFGS(object):
         y = self.y
         rho = self.rho
         k = self.k
+#        print "rho", rho
         
         q = G.copy()
         a = np.zeros(self.M)
         myrange = [ i % self.M for i in range(max([0, k - self.M]), k, 1) ]
         assert len(myrange) == min(self.M, k)
-        #print "myrange", myrange, ki, k
         for i in reversed(myrange):
             a[i] = rho[i] * np.dot( s[i,:], q )
             q -= a[i] * y[i,:]
@@ -279,11 +280,12 @@ class LBFGS(object):
             z += s[i,:] * (a[i] - beta)
         
         stp = -z
+        #js850 print "G H0 stp", G[0], self.H0, stp[0]
         
-        if k == 0:
-            #make first guess for the step length cautious
-            gnorm = np.linalg.norm(G)
-            stp *= min(gnorm, 1. / gnorm)
+#        if k == 0:
+#            #make first guess for the step length cautious
+#            gnorm = np.linalg.norm(G)
+#            stp *= min(gnorm, 1. / gnorm)
         
         return stp
     
@@ -334,8 +336,13 @@ class LBFGS(object):
         G0 = G.copy()
         E0 = E
         
+        if self.iter_number == 0:
+            #make first guess for the step length cautious
+            gnorm = np.linalg.norm(G)
+            f = min(gnorm, 1. / gnorm)
+        
         if np.dot(G, stp) > 0:
-            if self.debug:
+            if self.debug or self.iprint > 0:
                 overlap = np.dot(G, stp) / np.linalg.norm(G) / np.linalg.norm(stp)
                 self.logger.warn("LBFGS returned uphill step, reversing step direction: overlap %g" % (overlap))
             stp = -stp
@@ -350,7 +357,10 @@ class LBFGS(object):
         nincrease = 0
         while True:
             X = X0 + f * stp
+            #js850 print "taking trial stp", f, stp[0], f*np.linalg.norm(stp), f*stp[0], X[0], X0[0], X[0] - X0[0]
+            #js850 print stp[:5]
             E, G = self.pot.getEnergyGradient(X)
+            #js850 print "after potential call x-xbefore", X[0] - X0[0], X[0]
             self.funcalls += 1
 
             # get the increase in energy            
@@ -372,6 +382,9 @@ class LBFGS(object):
                 if nincrease > 10:
                     break
 
+        #js850 print "x - xbefore", X[0] - X0[0]
+        self.stepsize = f * stepsize
+
         if nincrease > 10:
             self.nfailed += 1
             if self.nfailed > 10:
@@ -386,7 +399,6 @@ class LBFGS(object):
             X = X0
             f = 0.
         
-        self.stepsize = f * stepsize
         return X, E, G
     
     def _accept_step(self, Enew, Eold, Gnew, Gold, step, strong=False):

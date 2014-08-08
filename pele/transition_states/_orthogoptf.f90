@@ -54,6 +54,10 @@
       DOUBLE PRECISION DUMMY1, DUMMY2, ROOTN, VDOT, &
                       CMX, CMY, CMZ, AMASS(NATOMS), TMASS, RMASS(NATOMS)
       NOPT = 3*NATOMS
+      !write(*,*) "starting orthogopt"
+      !write(*,*) "skipping orthogopt"
+      !CALL VECNORM(VEC1,NOPT)
+      !return
       !MASST = .FALSE.
 
       ROOTN=SQRT(1.0D0*NATOMS)
@@ -102,6 +106,7 @@
       DO J2=1,NOPT,3
          VEC1(J2)=VEC1(J2)-DUMMY1/ROOTN
       ENDDO
+      !write(*,*) "orthogopt after x", vec1(1), otest
       IF (OTEST) CALL VECNORM(VEC1,NOPT)
 
       !
@@ -164,6 +169,7 @@
             VEC1(J3)=VEC1(J3)+DUMMY2*RMASS(J2)*(COORDS(J3-1)-CMY)
          ENDDO
       ENDIF
+      !write(*,*) "orthogopt after rot 1", vec1(1)
       IF (OTEST) CALL VECNORM(VEC1,NOPT)
 !     PRINT*,'rot x component=',DUMMY2
 
@@ -184,6 +190,7 @@
             VEC1(J3)=VEC1(J3)-DUMMY2*RMASS(J2)*(COORDS(J3-2)-CMX)
          ENDDO
       ENDIF
+      !write(*,*) "orthogopt after rot 2", vec1(1)
       IF (OTEST) CALL VECNORM(VEC1,NOPT)
 !     PRINT*,'rot y component=',DUMMY2
 
@@ -204,6 +211,7 @@
             VEC1(J3-1)=VEC1(J3-1)+DUMMY2*RMASS(J2)*(COORDS(J3-2)-CMX)
          ENDDO
       ENDIF
+      !write(*,*) "orthogopt after rot 3", vec1(1)
       IF (OTEST) CALL VECNORM(VEC1,NOPT)
 !     PRINT*,'rot z component=',DUMMY2
 
@@ -213,5 +221,7 @@
       IF (NCHECK.GE.100) THEN
          PRINT*,'*** WARNING, cannot orthogonalise to known eigenvectors in ORTHOGOPT'
       ENDIF
+      !write(*,*) "orthogopt on exit", vec1(1)
+      call flush()
       RETURN
       END SUBROUTINE ORTHOGOPT

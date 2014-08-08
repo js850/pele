@@ -119,9 +119,11 @@ class LowestEigPot(BasePotential):
             A guess for the lowest eigenvector.  It should be normalized
         """
         vecl = 1.
+        vec_in = vec_in.copy()
         if self.orthogZeroEigs is not None:
             vec_in /= np.linalg.norm(vec_in)
-            vec_in = self.orthogZeroEigs(vec_in, self.coords)
+            #js850 print "calling orthogopt on eigenvector"
+            vec_in = self.orthogZeroEigs(vec_in, self.coords, norm=True)
             #vec_in /= np.linalg.norm(vec_in)
         vec = vec_in / np.linalg.norm(vec_in)
 
@@ -129,6 +131,7 @@ class LowestEigPot(BasePotential):
         Eplus, Gplus = self._get_true_energy_gradient(coordsnew)
         if self.first_order:
             curvature = np.dot((Gplus - self.true_gradient), vec) / self.diff
+            #js850 print "lambda", curvature
         else:
             coordsnew = self.coords - self.diff * vec
             Eminus, Gminus = self._get_true_energy_gradient(coordsnew)
@@ -148,13 +151,19 @@ class LowestEigPot(BasePotential):
             grad = (Gplus - self.true_gradient) * 2.0 / self.diff - 2. * curvature * vec
         else:
             grad = (Gplus - Gminus) / (self.diff * vecl**2) - 2.0 * curvature * vec / vecl**2
+        #js850 print "evec grad initial", grad[0]
         if self.orthogZeroEigs is not None:
-            grad = self.orthogZeroEigs(grad, self.coords)
+            #js850 print "calling orthogopt on gradient"
+            grad = self.orthogZeroEigs(grad, self.coords, norm=False)
+        #js850 print "evec grad after orthogonalization", grad[0]
         
         # Project out any component of the gradient along vec (which is a unit vector)
         # This is a big improvement for DFTB.
         # js850> grad should already be perpendicular to vec.  this helps with any numerical errors
         grad -= np.dot(grad, vec) * vec
+        
+        #js850 print "evec grad", grad[0], vec[0]
+        #js850 print vec[:5]
         
         return curvature, grad
 
@@ -187,7 +196,7 @@ class FindLowestEigenVector(object):
         these kwargs are passed to the optimizer which finds the direction 
         of least curvature
     """
-    def __init__(self, coords, pot, eigenvec0=None, orthogZeroEigs=0, dx=1e-6,
+    def __init__(self, coords, pot, eigenvec0=None, orthogZeroEigs=0, dx=1e-3,
                   first_order=True, gradient=None, **minimizer_kwargs):
         
         self.minimizer_kwargs = minimizer_kwargs
@@ -196,6 +205,15 @@ class FindLowestEigenVector(object):
             #this random vector should be distributed uniformly on a hypersphere.
             eigenvec0 = rotations.vec_random_ndim(coords.shape)
         eigenvec0 = eigenvec0 / np.linalg.norm(eigenvec0)
+        
+        if orthogZeroEigs == 0:
+            self.orthogZeroEigs = orthogopt
+        else:
+            self.orthogZeroEigs = orthogZeroEigs
+
+        if True:
+            #js850 print "calling orthog opt at the beginning of findTS"
+            eigenvec0 = self.orthogZeroEigs(eigenvec0, coords, norm=True)
 
         # change some default in the minimizer unless manually set
         if "nsteps" not in minimizer_kwargs:
@@ -203,12 +221,21 @@ class FindLowestEigenVector(object):
         if "logger" not in minimizer_kwargs:
             minimizer_kwargs["logger"] = logging.getLogger("pele.connect.findTS.leig_quench")
 
+        
 
         self.eigpot = LowestEigPot(coords, pot, orthogZeroEigs=orthogZeroEigs, dx=dx,
                                    gradient=gradient,
                                    first_order=first_order)
-        self.minimizer = MYLBFGS(eigenvec0, self.eigpot, rel_energy=True, 
+        self.minimizer = LBFGS(eigenvec0, self.eigpot, rel_energy=True, 
+                               events=[self._orthogonalize_event],
                                  **self.minimizer_kwargs)
+        print "initial energy in MYLBFGS", self.minimizer.energy, self.minimizer.rms
+
+    def _orthogonalize_event(self, coords=None, **kwargs):
+        #js850 print "calling orthogopt at the end of an lbfgs iteration"
+        vec = coords
+        vec[:] = self.orthogZeroEigs(vec, self.eigpot.coords)
+        
 
     def stop_criterion_satisfied(self):
         """test if the stop criterion is satisfied"""

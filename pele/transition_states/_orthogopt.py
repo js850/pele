@@ -4,7 +4,7 @@ from _orthogoptf import orthogopt as orthogoptf
 
 __all__ = ["orthogopt", "orthogopt_translation_only"]
 
-def orthogopt(v, coords, norm=False, translation_only=False):
+def orthogopt(v, coords, norm=True, translation_only=False):
     """
     make a vector orthogonal to eigenvectors of the Hessian corresponding to overall 
     translations and rotations.

@@ -95,6 +95,10 @@ class FindTransitionState(object):
     if the tolerance for tangent space search is lower than the total tolerance, 
     then it will never finish
     
+    Differences to OPTIM version
+    ----------------------------
+        In OPTIM, H0 for the lowest eigenvector search is reset at each iteration
+    
     See Also
     --------
     findTransitionState : function wrapper for this class
@@ -125,6 +129,12 @@ class FindTransitionState(object):
         self.nfail_max = nfail_max
         self.nfail = 0
         self.eigenvec = eigenvec0
+        if eigenvec0 is None:
+            print "WARNING: using vector of ones"
+            self.eigenvec = np.zeros(coords.size)
+            self.eigenvec[0] = 1.
+            self.eigenvec /= np.linalg.norm(self.eigenvec)
+            
         self.orthogZeroEigs = orthogZeroEigs
         self.iprint = iprint
         self.lowestEigenvectorQuenchParams = lowestEigenvectorQuenchParams
@@ -177,9 +187,9 @@ class FindTransitionState(object):
         self.step_factor = .1
         self.npositive = 0
         
-        self._trust_radius = 2.
+        self._trust_radius = 2. # the OPTIM default is 2, but is adjusted with keyword TRAD
         self._max_uphill = max_uphill_step_initial
-        self._max_uphill_min = .01
+        self._max_uphill_min = .01 # the OPTIM default is 0.01, but is adjusted with keyword MINMAX
         self._max_uphill_max = max_uphill_step
         
         self._transverse_walker = None
@@ -372,14 +382,18 @@ class FindTransitionState(object):
 
     def _get_lowest_eigenvector_RR(self, coords, gradient=None):
         """get the lowest eigenvector using Reyleigh Ritz minimization"""
+        if self.verbosity > 3:
+            print "computing the lowest eigenvector using Reyleigh-Ritz minimization"
         if "nsteps" in self.lowestEigenvectorQuenchParams:
             niter = self.lowestEigenvectorQuenchParams["nsteps"]
         else:
             niter = 100
             if self.verbosity > 3:
                 print "Using default of", niter, "steps for finding lowest eigenvalue"
+        if self.verbosity > 3:
+            print "H0 is", self.H0_leig
         optimizer = FindLowestEigenVector(coords, self.pot,
-#                                    H0=self.H0_leig, 
+                                    H0=self.H0_leig, 
                                     eigenvec0=self.eigenvec, 
                                     orthogZeroEigs=self.orthogZeroEigs, 
                                     gradient=gradient,
@@ -456,6 +470,8 @@ class FindTransitionState(object):
         energy, gradient : the energy and gradient at the current position
         """
         assert gradient is not None
+        if self.verbosity > 3:
+            print "minimizing in the space orthogonal to the eigenvector"
         if self._transverse_walker is None:
             if self.invert_gradient:
                 # note: if we pass transverse energy and gradient here we can save 1 potential call
@@ -498,6 +514,7 @@ class FindTransitionState(object):
 
     def _update_max_uphill_step(self, Fold, stepsize):
         """use a trust radius to update the maximum uphill step size"""
+        # Fold and Fnew are the projection of the gradient along the eigenvector before and after the step
         Fnew = np.dot(self.eigenvec, self.get_gradient())
         # EPER=MIN(DABS(1.0D0-(FOBNEW-FOB)/(PSTEP*EVALMIN)),DABS(1.0D0-(-FOBNEW-FOB)/(PSTEP*EVALMIN)))
         a1 = 1. - (Fnew - Fold) / (stepsize * self.eigenval)
@@ -507,12 +524,12 @@ class FindTransitionState(object):
             # reduce the maximum step size
             self._max_uphill = max(self._max_uphill / 1.1, self._max_uphill_min)
             if self.verbosity > 2:
-                print "decreasing max uphill step to", self._max_uphill, "Fold", Fold, "Fnew", Fnew, "eper", eper, "eval", self.eigenval 
+                print "decreasing max uphill step to", self._max_uphill, "Fold", Fold, "Fnew", Fnew, "trust ratio", eper, "eval", self.eigenval 
         else:
             # increase the maximum step size
             self._max_uphill = min(self._max_uphill * 1.1, self._max_uphill_max)
             if self.verbosity > 2:
-                print "increasing max uphill step to", self._max_uphill, "Fold", Fold, "Fnew", Fnew, "eper", eper, "eval", self.eigenval
+                print "increasing max uphill step to", self._max_uphill, "Fold", Fold, "Fnew", Fnew, "trust ratio", eper, "eval", self.eigenval
 
 
     def _stepUphill(self, coords):
@@ -547,12 +564,13 @@ class FindTransitionState(object):
         # recompute the energy and gradient
         self._compute_gradients(coords)
 
+        if self.verbosity > 2:
+            print "stepping uphill with stepsize", h
+
         # update the maximum step using a trust ratio
         if self.eigenval < 0:
             self._update_max_uphill_step(F, h)
 
-        if self.verbosity > 2:
-            print "stepping uphill with stepsize", h
 
         return coords
 
