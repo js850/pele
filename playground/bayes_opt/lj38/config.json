@@ -1,14 +1,28 @@
 {
     "language"        : "PYTHON",
-    "main-file"       : "lj38.py",
     "experiment-name" : "lj38_noisy",
-    "likelihood"      : "GAUSSIAN",
-    "grid_size"       : 20000,
+    "grid_size"       : 1000,
+    "polling-time"    : 1,
+    "resources" : {
+        "my-machine" : {
+            "scheduler"         : "local",
+            "max-concurrent"    : 4,
+            "max-finished-jobs" : 10000
+        }
+    },
+    "tasks": {
+        "main" : {
+            "type"       : "OBJECTIVE",
+            "likelihood" : "gaussian",
+            "main-file"  : "lj38.py",
+            "resources"  : ["my-machine"]
+        }
+    },
     "variables" : {
         "stepsize" : {
             "type" : "FLOAT",
             "size" : 1,
-            "min"  : 0.3,
+            "min"  : 0.4,
             "max"  : 0.8
         },
         "T" : {

@@ -65,3 +65,5 @@ from aamindist import TransformAngleAxisCluster, MeasureAngleAxisCluster, \
 from aasystem import AASystem, RBSystem
 from _cpp_aa import RBPotentialWrapper
 
+from _otp_cluster import OTPCluster
+

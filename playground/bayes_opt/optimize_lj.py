@@ -31,6 +31,8 @@ def run(system, max_n_quenches=1000000):
         emin = db.get_lowest_energy_minimum().energy
         if emin < egmin + delta_e:
             break
+        if i == max_n_quenches - 1:
+            print "it appears that the run failed. Stopping after", bh.result.nfev, "function evaluations"
     return bh.result.nfev
         
 
@@ -42,9 +44,15 @@ def start(natoms=17, stepsize=0.4, temperature=1., nruns=1, max_n_quenches=10000
     egmin = gmin_dict[natoms]
     system.egmin = egmin
     
+    print "starting job with:"
+    print "stepsize", stepsize
+    print "temperature", temperature
+    print "nrus", nruns
+    print "max_n_quenches", max_n_quenches
+    
     system.params.takestep.stepsize = stepsize
     system.params.basinhopping.temperature = temperature
-    nfev = [run(system) for i in xrange(nruns)]
+    nfev = [run(system, max_n_quenches) for i in xrange(nruns)]
     mean_nfev = np.mean(nfev)
     print "gmin found after", nfev, "evaluations"
     print "return value", mean_nfev
