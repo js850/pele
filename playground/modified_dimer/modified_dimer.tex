@@ -1,0 +1,397 @@
+\documentclass[a4paper]{article}
+
+%\usepackage[numbers]{natbib}
+\usepackage[top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{ulem}
+\usepackage{amsmath}
+%\usepackage{amsmath}
+%\bibliographystyle{naturemagurl}
+%\bibliographystyle{plainnat}
+
+
+\title{Notes on finding the lowest eigenvector}
+\author{Jacob Stevenson}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+This describes a method for computing the smallest eigenvector of a Hessian
+matrix $\hat{H}_{ij} = \partial E(\vec{x}) / (\partial{x_i}\partial x_j)$ of an
+energy function $E(\vec{x})$.  In this method the gradients $\vec{g} = \partial
+E(\vec{x}) / \partial \vec{x}$ of the energy function are used, but the exact
+Hessian is not.  The lowest eigenvector is found by estimating the curvature at
+a give point $\vec{x}$ along a direction $\vec{v}$ using finite differences and
+then using an optimization algorithm to minimizing the curvature with respect
+to $\vec{v}$.  
+
+\section{Central differences}
+The curvature is estimated by the the central differences formula, which is
+accurate up to order $\delta^2$ where $\delta$ is a small parameter.
+\begin{equation}
+\mu(\vec{x}, \vec{v}) = \frac{1}{\delta} 
+\left[ \vec{g}(\vec{x} + \frac{\delta}{2}  \vec{v}) - 
+\vec{g}(\vec{x} - \frac{\delta}{2} \vec{v}) \right] \cdot \vec{v}
+\end{equation}
+If N is the dimension of the original space then this is an optimization
+problem in N-1 dimensions because of the constraint that $\left|\vec{v} \right|
+= 1$.
+
+The gradients of the above function can be computed analytically to aid in the
+optimization.
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{1}{\delta} 
+\sum_i \frac{\partial v_i}{\partial v_k}
+\left[ g_i(\vec{x} + \frac{\delta}{2} \vec{v}) 
+- g_i(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
++
+\frac{1}{ \delta} 
+\sum_i v_i
+\frac{\partial}{\partial v_k}
+\left[ g_i(\vec{x} + \frac{\delta}{2} \vec{v}) 
+- g_i(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
+\end{equation}
+In the next we use
+\begin{equation}
+\frac{\partial g_i(\vec{x} + \frac{\delta}{2} \vec{v})}{ \partial v_k} 
+= 
+\frac{\delta}{2} \sum_j
+\frac{\partial g_i(\vec{x} + \frac{\delta}{2} \vec{v})}{ \partial x_j}
+\frac{\partial  v_j} { \partial v_k}
+= \frac{\delta}{2} 
+\frac{\partial g_i(\vec{x} + \frac{\delta}{2} \vec{v})}{ \partial x_k} 
+\end{equation}
+where $\partial v_i / \partial v_k$ is the kroniker delta $\delta_{ik}$.
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{1}{\delta} 
+\left[ g_k(\vec{x} + \frac{\delta}{2} \vec{v}) 
+- g_k(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
++
+\frac{1}{2} 
+\sum_i v_i
+\frac{\partial}{\partial x_k}
+\left[ g_i(\vec{x} + \frac{\delta}{2} \vec{v}) 
++ g_i(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
+\end{equation}
+To second order in $\delta$ we can replace the second term with
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{1}{\delta} 
+\left[ g_k(\vec{x} + \frac{\delta}{2} \vec{v}) 
+- g_k(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
++
+\sum_i v_i
+\frac{\partial g_i(\vec{x})}{\partial x_k}
+\end{equation}
+We use the fact that the Hessian is
+symmetric to slightly rewrite the second term
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{1}{\delta} 
+\left[ g_k(\vec{x} + \frac{\delta}{2} \vec{v}) 
+- g_k(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
++
+\sum_i v_i
+\frac{\partial g_k(\vec{x})}{\partial x_i}
+\end{equation}
+The second term is now the change in the derivative along the direction
+$\vec{v}$.  We know how to write this using the central difference method,
+which gives exactly the first term and we end up with.
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{2}{\delta} 
+\left[ g_k(\vec{x} + \frac{\delta}{2} \vec{v}) 
+- g_k(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
+\end{equation}
+
+We want to maintain the constraint $\left|\vec{v} \right| = 1$, so we subtract
+out the parallel component of the derivative
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial \vec{v}} - 
+\left(
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial \vec{v}} \cdot \vec{v}
+\right) \vec{v}
+= 
+\frac{2}{\delta} 
+\left[ \vec{g}(\vec{x} + \frac{\delta}{2} \vec{v}) 
+- \vec{g}(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
+-
+\left(
+\frac{2}{\delta} 
+\left[ \vec{g}(\vec{x} + \frac{\delta}{2} \vec{v}) 
+-\vec{g}(\vec{x} - \frac{\delta}{2} \vec{v}) \right] \cdot \vec{v}
+\right)
+\vec{v}
+\end{equation}
+Which simply reduces to 
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial \vec{v}} - 
+\left(
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial \vec{v}} \cdot \vec{v}
+\right) \vec{v}
+= 
+\frac{2}{\delta} 
+\left[ \vec{g}(\vec{x} + \frac{\delta}{2} \vec{v}) 
+- \vec{g}(\vec{x} - \frac{\delta}{2} \vec{v}) \right]
+-
+2 \mu \vec{v}
+\end{equation}
+
+
+\section{Forward finite differences}
+Here the curvature
+is estimated by the the forward finite differences method.
+\begin{equation}
+\mu(\vec{x}, \vec{v}) = \frac{1}{\delta} 
+\left[ \vec{g}(\vec{x} + \delta \vec{v}) - 
+\vec{g}(\vec{x}) \right] \cdot \vec{v}
+\end{equation}
+This is accurate only up to which is accurate up to order $\delta$, however
+each calculation of $\mu$ for a different $\vec{v}$ requires only one
+additional gradient evaluation.   
+
+The gradients of the above function can be computed analytically to aid in the
+optimization.
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{1}{\delta} 
+\sum_i \frac{\partial v_i}{\partial v_k}
+\left[ g_i(\vec{x} + \delta \vec{v}) 
+- g_i(\vec{x}) \right]
++
+\frac{1}{\delta} 
+\sum_i v_i
+\frac{\partial g_i(\vec{x} + \delta \vec{v})}{\partial v_k} 
+\end{equation}
+Following the arguments from the central differences method this can be reduced
+to
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{1}{\delta} 
+\left[ g_k(\vec{x} + \delta \vec{v}) 
+- g_k(\vec{x}) \right]
++
+\sum_i v_i
+\frac{\partial g_i(\vec{x} + \delta \vec{v})}{\partial x_k} 
+\end{equation}
+To first order in $\delta$ the second term simplifies to
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{1}{\delta} 
+\left[ g_k(\vec{x} + \delta \vec{v}) 
+- g_k(\vec{x}) \right]
++
+\sum_i v_i
+\frac{\partial g_k(\vec{x})}{\partial x_i} 
+\end{equation}
+In the above we also used the fact that the Hessian is symmetric.  Expanding
+the derivative in the second term using forward finite differences gives the
+same equation as the first term and we're left with
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{2}{\delta} 
+\left[ g_k(\vec{x} + \delta \vec{v}) 
+- g_k(\vec{x}) \right]
+\end{equation}
+Subtracting out the component parallel to $\vec{v}$ gives finally
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial \vec{v}} - 
+\left(
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial \vec{v}} \cdot \vec{v}
+\right) \vec{v}
+= 
+\frac{2}{\delta} 
+\left[ \vec{g}(\vec{x} + \delta \vec{v}) 
+- \vec{g}(\vec{x}) \right]
+-
+2 \mu \vec{v}
+\end{equation}
+
+\section{Rayleigh-Ritz}
+The procedure described above is often referred to as Rayleigh-Ritz
+optimization, or Rayleigh-Ritz variational procedure.  This is because the
+equations above for the curvature along a given direction is an expansion of
+the equation sometimes called the Rayleigh quotient or the Rayleigh-Ritz ratio
+\url{http://en.wikipedia.org/wiki/Rayleigh_quotient}. 
+\begin{equation}
+  \mu(\vec{x}, \vec{v}) = \frac{\vec{v}^T \cdot \hat{H}(\vec{x}) \cdot \vec{v}  }{ | \vec{v} |^2}
+\end{equation}
+In fact the derivatives of $\mu$ are much easier to perform if we do them
+before expanding in $\delta$
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})} {\partial v_k} = 
+\frac{ 2 \sum_j v_j H_{jk}}{|\vec{v}|^2}
+-
+\frac{2 \mu(\vec{x}, \vec{v}) v_k}{|\vec{v}|^2}
+\end{equation}
+Which, once you replace $\sum_j v_j H_{jk} =  \sum_j v_j \partial g_k(\vec{x})
+/ \partial x_j$ and expand the derivative in powers of $\delta$, gives exactly
+the equations we found above.
+
+
+\section{modified}
+
+Currently the two components of transition state search: translation and rotation are treated separately.
+First you rotate until the the rotation is converged, then you translate some distance and repeat.
+We have already seen that the rotation corresponds to minimizing the curvature $\mu(\vec{x}, \vec{v})$.
+In the dimer mode of thinking the translation corresponds to following the effective gradient
+\begin{equation}
+\frac{\partial f}{\partial \vec{x}} = \frac{\partial E}{\partial \vec{x}} - 2 \vec{v} \frac{\partial E}{\partial \vec{x}} \cdot \vec{v}
+\end{equation}
+where the second term reverses the gradient along the direction of $\vec{v}$ so we maximize in that direction.  This
+is actually a deceptive way to look at it because $f$ cannot be written as a single valued function because the integral of 
+$df/dx$ is not path independent.  I leave it in because it helps my thinking and as long as you remember that it can't be defined
+it doesn't do any harm (I think).
+
+My first thought was to try to minimize an effective cost function.  Something like $cost = f(\vec{x}, \vec{v}) + k \mu(\vec{x}, \vec{v})$.
+But that won't work because there will be a trade off between energy and curvature.  What we want is to minimize $f$ \emph{given} that v
+minimizes the curvature.  This can be implemented with lagrange multipliers.
+\begin{equation}
+F(\vec{x}, \vec{v}, \vec{\lambda}) = f(\vec{x}, \vec{v}) + \vec{\lambda} \cdot \frac{\partial \mu(\vec{x}, \vec{v})}{\partial \vec{v}}
+\end{equation}
+This implements a constraint for each degree of freedom, such that every element of $d\mu /dv$ is zero.
+Once again, this function can't actually be written down, but hopefully the derivatives will be well defined.
+
+First we consider derivatives with respect to $\lambda$
+\begin{equation}
+\frac{\partial F}{\partial \vec{\lambda}} = \frac{\partial \mu(\vec{x}, \vec{v})}{\partial \vec{v}}
+\end{equation}
+This is well defined and easy to compute.  The formula is given above.  
+
+
+\begin{equation}
+\frac{\partial F}{\partial \vec{x}} = \frac{\partial f}{\partial \vec{x}} -
+\frac{\partial}{\partial \vec{x}} \vec{\lambda} \cdot \frac{\partial
+\mu(\vec{x}, \vec{v})}{\partial \vec{v}}
+\end{equation}
+The first term is given above.  The second term reduces to terms of the form
+$\vec{\lambda} \cdot \frac{\partial^2 g_k}{\partial \vec{x} \partial \vec{x}} \cdot \vec{v}$ where $g_k$ is the kth component
+of the gradient.  This can be computed fairly easily
+with the finite differences approximation by considering the gradient evaluated at 
+$x$,
+$x+\delta v$,
+$x+\delta \lambda$, and
+$x+\delta v + \delta \lambda$.
+
+Derivatives with respect to $\vec{v}$ are more complicated
+\begin{equation}
+\frac{\partial F}{\partial \vec{v}} = \frac{\partial f}{\partial \vec{v}} -
+\vec{\lambda} \cdot \frac{\partial^2
+\mu(\vec{x}, \vec{v})}{\partial \vec{v} \partial \vec{v}}
+\end{equation}
+The first term is a disaster, so lets consider the second term first.  Applying the chain rule
+to $d\mu / dv$ we get
+\begin{equation}
+\sum_j \lambda_j \frac{\partial }{\partial v_j }
+\frac{\partial \mu}{\partial v_k}
+= 
+\sum_j \lambda_j \left\{
+-\frac{2 v_j}{|v|^2} \frac{\partial \mu}{\partial v_k}
++
+\frac{ 2 H_{jk}}{|\vec{v}|^2}
+-
+\frac{2 \mu(\vec{x}, \vec{v}) \delta_{jk}}{|\vec{v}|^2}
+-
+\frac{2  v_k}{|\vec{v}|^2} \frac{\partial \mu}{\partial v_j}
+\right\}
+\end{equation}
+All these terms can be computed fairly easily.  Even $\vec{\lambda} \cdot H$, which is the curvature along the direction $\vec{lambda}$ can be computed
+with finite differences using the gradient evaluated at 
+$x+\delta \lambda$, which we already needed to compute for a previous terms.
+
+The last term we consider is $\partial f / \partial v$.  There is not really a
+straightforward way to compute this because $f$ is not actually a function.
+$f$ is only defined in terms of $\partial f / \partial x$.  Perhaps we can
+compute $\partial^2 f / (\partial x \partial v)$ and try to integrate with
+respect to x.
+\begin{equation}
+\frac{\partial^2 f}{\partial {x_j} \partial {v_k}} = 
+- 2 \delta_{jk} \frac{\partial E}{\partial \vec{x}} \cdot \vec{v}
+- 2 {v_j} \frac{\partial E}{\partial {x_k}}
+\end{equation}
+Integrating either term is not trivial.  For a few minutes I thought the second term was trivial, but then 
+I realized that the derivative on $f$ is w.r.t. $x_j$ and the derivative on $E$ is w.r.t. $x_k$.
+Perhaps we can make progress by defining the z axis to be along $\vec{v}$.  We have
+$\vec{v} = v_z \hat{z}$ and $\vec{x} = z \hat{z} + \vec{x}_\perp$.
+Lets first look at the case when both $j$ and $k$ are in the $z$ direction.
+\begin{equation}
+\frac{\partial^2 f}{\partial {z} \partial {v_z}} = 
+- 2 \frac{\partial E}{\partial z} v_z
+- 2 {v_z} \frac{\partial E}{\partial z}
+=
+- 4 {v_z} \frac{\partial E}{\partial z}
+\end{equation}
+Next we consider the case where $k$ is along the z direction, but $j$ is not.
+The first term vanishes because $j \ne k$ and the second term vanishes because $v_j = 0$ so the whole
+expression is zero.
+
+Next we consider the case where $j$ is along the z direction, but $k$ is not.
+Again first term vanishes because $j \ne k$.  So we are left with the second term
+\begin{equation}
+\frac{\partial^2 f}{\partial {z} \partial \vec{v}_\perp} = 
+- 2 {v_z} \frac{\partial E}{\partial \vec{x}_\perp}
+\end{equation}
+
+Finally we consider the case where neither $j$ nor $k$ is along the z direction.
+The second term vanishes and the $\delta_{ij}$ kills all non-diagonal terms.
+\begin{equation}
+\frac{\partial^2 f}{\partial {x_j} \partial {v_k}} = 
+- 2 \delta_{jk} \frac{\partial E}{\partial z} v_z
+\end{equation}
+
+Putting it all together in a matrix where the components of 
+$\partial / \partial \vec{x}$ are column wise
+$\partial / \partial \vec{v}$ are row-wise and
+\begin{equation}
+\frac{\partial}{\partial \vec{x}} 
+\frac{\partial}{\partial \vec{v}}^{T}
+f = 
+- 2 v_z \frac{\partial E}{\partial z}  I +
+\begin{pmatrix}
+- 2 v_z \frac{\partial E}{\partial z}
+& 
+- 2 {v_z} \frac{\partial E}{\partial \vec{x}_\perp}
+ \\
+0 & 0 
+\end{pmatrix}
+\end{equation}
+
+When we actually do  the integral, we apply $\int d \vec{x} \cdot$ and get
+\begin{equation}
+\frac{\partial f}{\partial {v_k}} = 
+\sum_j \int dx_j
+\frac{\partial^2 f}{\partial {x_j} \partial {v_k}} = 
+- 2 {v_z} \left[ \int  d x_k
+\frac{\partial E}{\partial z}
++ \int d z
+\frac{\partial E}{\partial {x_k}}
+\right]
+\end{equation}
+If $k=z$ this integral becomes trivial
+\begin{equation}
+\frac{\partial f}{\partial {v_z}} = 
+- 4 {v_z} E
+\end{equation}
+The solution may be trivial, but it doesn't make sense.  How can a physical quantity depend only on the energy when the we are
+free to shift the value of the energy to anything we like?
+
+I'm pretty sure the integrals for all other values of $k$ are path dependent.  e.g. for the y direction
+\begin{equation}
+\frac{\partial f}{\partial {v_y}} = 
+- 2 {v_z} \left[ \int  d y
+\frac{\partial E}{\partial z}
++ \int d z
+\frac{\partial E}{\partial {y}}
+\right]
+\end{equation}
+It's almost like a cross produce, but without a minus sign.   
+
+We haven't actually defined a path yet.
+Stefano suggested we define the origin to be the starting point for the
+optimization and the integration path to be the optimization path.  Perhaps that would work.
+
+\end{document}
