@@ -133,7 +133,7 @@ def steepest_descent(x0, pot, iprint=-1, dx=1e-4, nsteps=100000,
                 print "step %8d energy %20.12g rms gradient %20.12g" % (funcalls, E, rms)
         if events is not None:
             for event in events:
-                event(energy=E, coords=x, rms=rms)
+                event(energy=E, coords=x, rms=rms, gradient=V)
         if rms < tol:
             break
     res = Result()

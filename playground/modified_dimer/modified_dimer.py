@@ -9,39 +9,31 @@ from pele.utils.rotations import vec_random_ndim
 class Position(object):
     x = None
     v = None
-    lam = None
     e = None
     g = None
     e_dv = None
     g_dv = None
-    e_dl = None
-    g_dl = None
-    e_dv_dl = None
-    g_dv_dl = None
     
-    def __init__(self, potential, x, v, lam, dx=1e-7):
+    def __init__(self, potential, x, v, dx=1e-7):
         self.potential = potential
         self.x = x
         self.v = v
-        self.lam = lam
         self.dx = dx
     
     def compute_energies(self):
         x = self.x
         v = self.v
-        lam = self.lam / np.linalg.norm(self.lam)
         self.e, self.g = self.potential.getEnergyGradient(x)
         self.e_dv, self.g_dv = self.potential.getEnergyGradient(x + self.dx * v)
-        self.e_dl, self.g_dl = self.potential.getEnergyGradient(x + self.dx * lam)
-        self.e_dv_dl, self.g_dv_dl = self.potential.getEnergyGradient(x + self.dx * lam + self.dx * v)
         self.hess = self.potential.getHessian(x)
         self.hess_dv = self.potential.getHessian(x + self.dx * v)
 
 class CurvaturePotential(BasePotential):
-    def __init__(self, potential, dx=1e-7):
+    def __init__(self, potential, dx=1e-7, lam=1.):
         self.potential = potential
         self.dx = float(dx)
         self.with_hess = True
+        self.lam = lam
     
 
     def curvature_along_v(self, p):
@@ -49,10 +41,7 @@ class CurvaturePotential(BasePotential):
             return np.dot(p.v, np.dot(p.hess, p.v))
         else:
             return np.dot(p.v, (p.g_dv - p.g)) / p.dx
-    def curvature_along_lam(self, p):
-        return np.dot(p.lam, (p.g_dl - p.g)) / p.dx
-    def grad_curvature_v_mu_dot_lam(self, p):
-        return (p.g_dv_dl - p.g_dv - p.g_dl - p.g) / p.dx**2
+        
     def grad_curvature_wrt_v(self, p):
         if self.with_hess:
             v_hess = np.dot(p.v, p.hess)
@@ -65,90 +54,65 @@ class CurvaturePotential(BasePotential):
             dmu_dv = 2 * dg - mu * p.v
             return dmu_dv
     
-    def update_coords(self, x, v, lam):
+    def update_coords(self, x, v):
         v /= np.linalg.norm(v)
-        self.pos = Position(self.potential, x, v, lam, dx=self.dx)
+        self.pos = Position(self.potential, x, v, dx=self.dx)
         self.pos.compute_energies()
         return self.pos
     
-    def test(self, x, v, lam):
-        pos = Position(self.potential, x, v, lam, dx=self.dx)
-        pos.compute_energies()
-        self.pos = pos
-        
-        hess = self.potential.getHessian(x)
-        mu_v = self.curvature_along_v(pos)
-        print "the curvature along the v direction is", mu_v, " it should be", np.dot(v, np.dot(hess, v))
-        
-        mu_lam = self.curvature_along_lam(pos)
-        print "the curvature along the lam direction is", mu_lam, " it should be", np.dot(lam, np.dot(hess, lam)) / np.dot(lam,lam)
-
-        dmu_v_lam = self.grad_curvature_v_mu_dot_lam(pos)
-        print "the change in curvature along the v direction w.r.t. changes in the lam direction", dmu_v_lam
-
-    def split_x_v_lam(self, x_v_lam):
-        x_v_lam = x_v_lam.reshape([3,-1])
-        return x_v_lam
-    def merge_x_v_lam(self, x, v, lam):
-        x_v_lam = np.zeros([3, x.size])
+    def split_x_v(self, x_v):
+        x_v = x_v.reshape([2,-1])
+        return x_v
+    def merge_x_v(self, x, v):
+        x_v_lam = np.zeros([2, x.size])
         x_v_lam[0,:] = x
         x_v_lam[1,:] = v
-        x_v_lam[2,:] = lam
         return x_v_lam.ravel()
 
-    def grad_wrt_lam(self, pos):
-        return self.grad_curvature_wrt_v(pos)
-
     def grad_wrt_x(self, p):
+        dmu_dv = self.grad_curvature_wrt_v(p)
         if self.with_hess:
-            t1 = 2. * (np.dot(p.hess_dv, p.lam) - np.dot(p.hess, p.lam)) / p.dx
-        else:
-            t1 = 2. * (p.g_dv_dl - p.g_dv - p.g_dl + p.g) / p.dx**2 * np.linalg.norm(p.lam)
-        if self.with_hess:
-            dmu_dx = (np.dot(p.hess_dv, p.v) - np.dot(p.hess, p.v)) / p.dx
-            t2 = -2. * np.dot(p.v, p.lam) * dmu_dx
+            t1 = (np.dot(p.hess_dv, dmu_dv) - np.dot(p.hess, dmu_dv)) / p.dx
         else:
             raise NotImplementedError
         print "grad wrt x"
         print t1
-        print t2
-        return t1 + t2
+        return 4. * self.lam * t1
 
     def grad_wrt_v(self, p):
         dmu_dv = self.grad_curvature_wrt_v(p)
         mu = self.curvature_along_v(p)
-        t1 = -2. * np.dot(p.v, p.lam) * dmu_dv
         if self.with_hess:
-            t2 = 2. * np.dot(p.lam, p.hess)
+            t2 = np.dot(dmu_dv, p.hess)
         else:
-            t2 = 2. * np.linalg.norm(p.lam) * (p.g_dl - p.g) / p.dx
+            raise NotImplementedError
             
-        t3 = -2. * mu * p.lam
-        t4 = -2. * np.dot(p.lam, dmu_dv) * p.v
+        t3 = - mu * dmu_dv
+        t4 = - np.dot(dmu_dv, dmu_dv) * p.v
         
         print "grad wrt v"
-        print t1
         print t2
         print t3
         print t4
         
-        return t1 + t2 + t3 + t4
+        return 4. * self.lam * (t2 + t3 + t4)
         
-    def getEnergy(self, x_v_lam):
-        x, v, lam = self.split_x_v_lam(x_v_lam)
-        pos = self.update_coords(x, v, lam)
+    def getEnergy(self, x_v):
+        x, v = self.split_x_v(x_v)
+        pos = self.update_coords(x, v)
         
         dmu_dv = self.grad_curvature_wrt_v(pos)
-        return np.dot(dmu_dv, lam)
+        return self.lam * np.dot(dmu_dv, dmu_dv)
 
-    def getEnergyGradient1(self, x_v_lam):
-        x, v, lam = self.split_x_v_lam(x_v_lam)
-        pos = self.update_coords(x, v, lam)
-        e = np.dot(lam, self.grad_curvature_wrt_v(pos))
+    def getEnergyGradient1(self, x_v):
+        x, v = self.split_x_v(x_v)
+        pos = self.update_coords(x, v)
+
+        dmu_dv = self.grad_curvature_wrt_v(pos)
+        e = self.lam * np.dot(dmu_dv, dmu_dv)
         
-        grad = self.merge_x_v_lam(self.grad_wrt_x(pos),
-                                  self.grad_wrt_v(pos),
-                                  self.grad_wrt_lam(pos))
+        grad = self.merge_x_v(self.grad_wrt_x(pos),
+                              self.grad_wrt_v(pos))
         return e, grad
 
 
@@ -161,14 +125,15 @@ class ModifiedDimer(BasePotential):
         return 0.
     
     def getEnergyGradient(self, x_v_lam):
-        x, v, lam = self.cpot.split_x_v_lam(x_v_lam)
+        x, v = self.cpot.split_x_v(x_v_lam)
         v /= np.linalg.norm(v)
         e, gxvlam = self.cpot.getEnergyGradient(x_v_lam)
         true_grad = self.cpot.pos.g
         projected_grad = true_grad - 2. * np.dot(true_grad, v) * v
         g0 = np.zeros(projected_grad.size)
-        g1 = self.cpot.merge_x_v_lam(projected_grad, g0, g0)
-        return 0., g1 + gxvlam
+        g1 = self.cpot.merge_x_v(projected_grad, g0)
+        gtot = g1 + gxvlam
+        return e, gtot
         
 
 class TestPot(BasePotential):
@@ -215,23 +180,20 @@ def test():
 
     x = np.array([0.,.1])
     v = vec_random_ndim(2) 
-    lam = vec_random_ndim(2)
 #    v = np.array([.4,.1])
 #    v /= np.linalg.norm(v) 
-#    lam = np.array([.3,-.1])
 
     cpot = CurvaturePotential(p)
-    cpot.test(x, v, lam)
     
-    xvlam = cpot.merge_x_v_lam(x, v, lam)
-    e = cpot.getEnergy(xvlam)
+    xv = cpot.merge_x_v(x, v)
+    e = cpot.getEnergy(xv)
     print e
     
-    e, g = cpot.getEnergyGradient(xvlam)
+    e, g = cpot.getEnergyGradient(xv)
     print e
     print g
     
-    ng = cpot.NumericalDerivative(xvlam, eps=1e-4)
+    ng = cpot.NumericalDerivative(xv, eps=1e-4)
     print "gradient", g
     print "num grad", ng
     
@@ -257,13 +219,11 @@ def draw_arrow(x, v, ax, c='k'):
     ax.arrow(x[0], x[1], h[0], h[1], fc=c, ec=c)
 
 def test2():
-    from pele.optimize._quench import steepest_descent
+    from pele.optimize._quench import steepest_descent, lbfgs_py
     from pele.utils.hessian import get_smallest_eig
     p = TestPot()
-    x = np.array([0.1, 0.1])
+    x = np.array([0.4, 0.5])
     v = vec_random_ndim(2) 
-    lam = vec_random_ndim(2)
-    lam /= 100.
 #    v = np.array([.4,.1])
 #    v /= np.linalg.norm(v) 
 #    lam = np.array([.3,-.1])
@@ -273,23 +233,26 @@ def test2():
 
 #    plot_test_pot(x, v, lam)
 
-    cpot = CurvaturePotential(p)
+    cpot = CurvaturePotential(p, lam=1.)
     dpot = ModifiedDimer(p)
     
-    xvlam = cpot.merge_x_v_lam(x, v, lam)
+    xvlam = cpot.merge_x_v(x, v)
     
     xvl_list = []
-    def callback(coords=None, **kwargs):
+    def callback(coords=None, gradient=None, rms=None, **kwargs):
+        print "coords", coords, rms
+        print "grad", gradient
         xvl_list.append(coords.copy())
     
     
-    steepest_descent(xvlam, dpot, iprint=1, dx=1e-2, nsteps=50, events=[callback])
+#     steepest_descent(xvlam, dpot, iprint=1, dx=4e-3, nsteps=200, events=[callback])
+    lbfgs_py(xvlam, dpot, iprint=1, maxstep=1.4, nsteps=200, events=[callback])
     
     plot_test_pot_background()
     ax = plt.gca()
-    for xvl in xvl_list:
-        x, v, l = cpot.split_x_v_lam(xvl)
-        print x, v, lam
+    for xvl in xvl_list[0:-1:1]:
+        x, v = cpot.split_x_v(xvl)
+        print x, v
 #        plt.scatter(x[0], x[1])
         draw_arrow(x, v, ax)
 #        draw_arrow(x, lam, ax, c='r')
