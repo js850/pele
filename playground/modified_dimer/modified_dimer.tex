@@ -276,6 +276,33 @@ $x$,
 $x+\delta v$,
 $x+\delta \lambda$, and
 $x+\delta v + \delta \lambda$.
+Explicitly we have 
+\begin{equation}
+\frac{\partial}{\partial x_k} \vec{\lambda} \cdot \frac{\partial
+\mu(\vec{x}, \vec{v})}{\partial \vec{v}} =
+\sum_{i} \frac{\partial}{\partial x_k} \lambda_i 
+\left[
+\frac{ 2 \sum_j v_j H_{ji}}{|\vec{v}|^2}
+-
+\frac{2 \mu(\vec{x}, \vec{v}) v_i}{|\vec{v}|^2}
+\right]
+=
+\frac{ 2}{|\vec{v}|^2}
+\left[
+\vec{v}
+\cdot
+\frac{\partial g_k}{\partial \vec{x} \partial \vec{x}}
+\cdot
+\vec{\lambda}
+-
+\vec{v}
+\cdot
+\vec{\lambda}
+\frac{\partial \mu}{\partial x_k}
+\right]
+\end{equation}
+The last term $d\mu / dx_k$ is the second derivative of the gradient ($g_k$) in the $\vec{v}$ direction.
+This can be computed with finite differences by computing additionally the gradient at $x + 2*\delta v$.
 
 Derivatives with respect to $\vec{v}$ are more complicated
 \begin{equation}
