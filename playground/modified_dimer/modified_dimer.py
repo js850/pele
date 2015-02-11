@@ -19,6 +19,7 @@ class Position(object):
         self.x = x
         self.v = v
         self.dx = dx
+        self.vnorm = np.linalg.norm(v)
     
     def compute_energies(self):
         x = self.x
@@ -38,24 +39,24 @@ class CurvaturePotential(BasePotential):
 
     def curvature_along_v(self, p):
         if self.with_hess:
-            return np.dot(p.v, np.dot(p.hess, p.v))
+            return np.dot(p.v, np.dot(p.hess, p.v)) / p.vnorm**2
         else:
-            return np.dot(p.v, (p.g_dv - p.g)) / p.dx
+            return np.dot(p.v, (p.g_dv - p.g)) / p.dx / p.vnorm**2
         
     def grad_curvature_wrt_v(self, p):
         if self.with_hess:
             v_hess = np.dot(p.v, p.hess)
-            mu = np.dot(p.v, v_hess)
-            return 2.* v_hess - 2. * mu * p.v 
+            mu = np.dot(p.v, v_hess) / p.vnorm**2
+            return (2.* v_hess - 2. * mu * p.v) / p.vnorm**2 
         else:
             dg = (p.g_dv - p.g) / p.dx
-            mu = np.dot(dg, p.v)
+            mu = np.dot(dg, p.v) / p.vnorm**2
             
-            dmu_dv = 2 * dg - mu * p.v
+            dmu_dv = 2 * (dg - mu * p.v) / p.vnorm**2
             return dmu_dv
     
     def update_coords(self, x, v):
-        v /= np.linalg.norm(v)
+#        v /= np.linalg.norm(v)
         self.pos = Position(self.potential, x, v, dx=self.dx)
         self.pos.compute_energies()
         return self.pos
@@ -91,9 +92,9 @@ class CurvaturePotential(BasePotential):
         t4 = - np.dot(dmu_dv, dmu_dv) * p.v
         
         print "grad wrt v"
-        print t2
-        print t3
-        print t4
+        print 4*self.lam*t2
+        print 4*self.lam*t3
+        print 4*self.lam*t4
         
         return 4. * self.lam * (t2 + t3 + t4)
         
@@ -104,7 +105,7 @@ class CurvaturePotential(BasePotential):
         dmu_dv = self.grad_curvature_wrt_v(pos)
         return self.lam * np.dot(dmu_dv, dmu_dv)
 
-    def getEnergyGradient1(self, x_v):
+    def getEnergyGradient(self, x_v):
         x, v = self.split_x_v(x_v)
         pos = self.update_coords(x, v)
 
@@ -157,31 +158,59 @@ class TestPot(BasePotential):
              +4. * np.outer(x+dx, x-dx))
         return e, g, h
 
-def plot_test_pot_background():
+def plot_test_pot_background(p=None):
     x0 = np.arange(-1.5, 1.5,.05)
     y0 = np.arange(-.6, .6,.05)
     xgrid, ygrid = np.meshgrid(x0, y0)
-    p = TestPot()
+    p = p or TestPot()
     f = np.array([p.getEnergy(np.array([x1,y])) for x1, y in izip(xgrid.ravel(), ygrid.ravel())]).reshape(xgrid.shape)
     plt.contourf(x0, y0, f)
+    plt.colorbar()
 
-def plot_test_pot(x, v, lam):
+def plot_test_pot(x, v):
     plot_test_pot_background()
     
     ax = plt.gca()
     h = x+v
     ax.arrow(x[0], x[1], h[0], h[1])
-    h = x+lam
-    ax.arrow(x[0], x[1], h[0], h[1], fc='r', ec='r')
     plt.show()
+
+class TestCPot(BasePotential):
+    def __init__(self, cpot, x):
+        self.cpot = cpot
+        self.x = x.copy()
+    
+    def getEnergy(self, v):
+        v = v.copy()
+#        v = v / np.linalg.norm(v)
+        pos = self.cpot.update_coords(self.x.copy(), v)
+        return self.cpot.curvature_along_v(pos)
+    def getEnergyGradient(self, v):
+        v = v.copy()
+#        v = v / np.linalg.norm(v)
+        pos = self.cpot.update_coords(self.x.copy(), v.copy())
+        mu = self.cpot.curvature_along_v(pos)
+        return mu, self.cpot.grad_curvature_wrt_v(pos)
+    def getEnergyGradientHessian(self, v):
+        v = v.copy()
+#        v = v / np.linalg.norm(v)
+        mu, dmu_dv = self.getEnergyGradient(v)
+        hess = 2. * (-np.outer(v, dmu_dv)
+                     +self.cpot.pos.hess
+                     -np.outer(dmu_dv, v)
+                     -mu * np.eye(v.size)
+                     ) / self.cpot.pos.vnorm**2
+        return mu, dmu_dv, hess
 
 def test():
     p = TestPot()
 
     x = np.array([0.,.1])
-    v = vec_random_ndim(2) 
-#    v = np.array([.4,.1])
-#    v /= np.linalg.norm(v) 
+    v = vec_random_ndim(2)
+    v = np.array([.4,.1])
+    v /= np.linalg.norm(v) 
+#    v = np.array([np.sqrt(2)]*2)
+#    v = np.array([1.,0])
 
     cpot = CurvaturePotential(p)
     
@@ -189,14 +218,52 @@ def test():
     e = cpot.getEnergy(xv)
     print e
     
-    e, g = cpot.getEnergyGradient(xv)
-    print e
+    e, g = cpot.getEnergyGradient(xv.copy())
+    print "energy", e
     print g
+    print "curvature", cpot.curvature_along_v(cpot.pos)
     
-    ng = cpot.NumericalDerivative(xv, eps=1e-4)
+    ng = cpot.NumericalDerivative(xv, eps=1e-3)
     print "gradient", g
     print "num grad", ng
     
+    print "------------------------------"
+    tcpot = TestCPot(cpot, x)
+    tcpot.test_potential(v, verbose=True)
+    
+    
+    print ""
+    h = tcpot.getHessian(v)
+    hnum = tcpot.NumericalHessian(v, eps=1e-2)
+    print "hess   "
+    print h
+    print "numerical hessian"
+    print hnum
+    
+    
+    eps = 1e-6
+    delta=np.array([eps, 0.])
+    e, g = tcpot.getEnergyGradient(v)
+    ep, gp = tcpot.getEnergyGradient(v + delta)
+    em, gm = tcpot.getEnergyGradient(v - delta)
+    print "hess[0,0]", (ep - 2.*e + em) / eps**2
+    print "hess[0,0]", (gp - gm) / eps / 2.
+    print "gp, gm", gp, gm
+
+    delta=np.array([0., eps])
+    e, g = tcpot.getEnergyGradient(v)
+    ep, gp = tcpot.getEnergyGradient(v + delta)
+    em, gm = tcpot.getEnergyGradient(v - delta)
+    print "hess[1,1]", (ep - 2.*e + em) / eps**2
+    print "hess[1,1]", (gp - gm) / (2. * eps)
+    print "hess[1,1]", (gp - g) / (eps), "first order"
+    print "gp, gm", gp, gm
+
+    plot_test_pot_background(tcpot)
+    draw_arrow([0.,0], v)
+    plt.show()
+    
+    return
 #    eps = 1e-6
 #    x = xvlam.copy()
 #    x[0] += eps
@@ -212,9 +279,10 @@ def test():
 #    plt.colorbar()
 #    plt.show()
 
-    plot_test_pot(x, v, lam)
+    plot_test_pot(x, v)
 
-def draw_arrow(x, v, ax, c='k'):
+def draw_arrow(x, v, ax=None, c='k'):
+    ax = ax or plt.gca()
     h = x+v
     ax.arrow(x[0], x[1], h[0], h[1], fc=c, ec=c)
 
@@ -263,4 +331,4 @@ def test2():
 
     
 if __name__ == "__main__":
-    test2()
+    test()

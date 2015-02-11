@@ -421,4 +421,52 @@ We haven't actually defined a path yet.
 Stefano suggested we define the origin to be the starting point for the
 optimization and the integration path to be the optimization path.  Perhaps that would work.
 
+
+\subsection{modified dimer cost function}
+
+If we cast it as an optimization problem of the form
+\begin{equation}
+F(\vec{x}, \vec{v}, \lambda) = f(\vec{x}, \vec{v}) + \lambda \left| \frac{\partial \mu(\vec{x}, \vec{v})}{\partial \vec{v}} \right|^2
+\end{equation}
+then this should also work.  There will be no trade off between energy and curvature because $|d\mu / dv|$ 
+can't get smaller than zero, the solution we're looking for.  $\lambda$ here is a parameter which can be set a-priori.  
+
+Differentiating w.r.t. $x$ gives
+\begin{equation}
+\frac{\partial F}{\partial x_k} = \frac{\partial f}{\partial x_k} +
+2 \lambda \sum_j 
+\frac{\partial^2 \mu}{\partial x_k \partial v_j} \frac{\partial
+\mu}{\partial v_j}
+\end{equation}
+
+
+Differentiating w.r.t. $v$ gives
+\begin{equation}
+\frac{\partial F}{\partial v_k} = \frac{\partial f}{\partial v_k} +
+2 \lambda \sum_j 
+\frac{\partial^2 \mu}{\partial v_k \partial v_j} \frac{\partial
+\mu}{\partial v_j}
+\end{equation}
+We realized above that we don't know what to do with $df/dv$, but the second term is tractable
+\begin{equation}
+2 \lambda \sum_j \frac{\partial \mu}{\partial v_j} \frac{\partial }{\partial v_j }
+\frac{\partial \mu}{\partial v_k}
+= 
+\frac{4 \lambda}{|v|^2}
+\sum_j 
+\frac{\partial \mu}{\partial v_j} 
+\left\{
+-v_j \frac{\partial \mu}{\partial v_k}
++
+H_{jk}
+-
+\mu(\vec{x}, \vec{v}) \delta_{jk}
+-
+v_k \frac{\partial \mu}{\partial v_j}
+\right\}
+\end{equation}
+Because $v$ is normalized we have $d\mu /dv$ along the $v$ direction is zero, so the first term vanishes.
+
+
+
 \end{document}
