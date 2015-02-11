@@ -76,9 +76,7 @@ class CurvaturePotential(BasePotential):
             t1 = (np.dot(p.hess_dv, dmu_dv) - np.dot(p.hess, dmu_dv)) / p.dx
         else:
             raise NotImplementedError
-        print "grad wrt x"
-        print t1
-        return 4. * self.lam * t1
+        return 4. * self.lam * t1 / p.vnorm
 
     def grad_wrt_v(self, p):
         dmu_dv = self.grad_curvature_wrt_v(p)
@@ -91,12 +89,7 @@ class CurvaturePotential(BasePotential):
         t3 = - mu * dmu_dv
         t4 = - np.dot(dmu_dv, dmu_dv) * p.v
         
-        print "grad wrt v"
-        print 4*self.lam*t2
-        print 4*self.lam*t3
-        print 4*self.lam*t4
-        
-        return 4. * self.lam * (t2 + t3 + t4)
+        return 4. * self.lam * (t2 + t3 + t4) / p.vnorm
         
     def getEnergy(self, x_v):
         x, v = self.split_x_v(x_v)
@@ -114,26 +107,30 @@ class CurvaturePotential(BasePotential):
         
         grad = self.merge_x_v(self.grad_wrt_x(pos),
                               self.grad_wrt_v(pos))
+        grad[:x.size] = 0. # trial
         return e, grad
 
 
 class ModifiedDimer(BasePotential):
-    def __init__(self, potential):
-        self.cpot = CurvaturePotential(potential)
+    def __init__(self, potential, **kwargs):
+        self.cpot = CurvaturePotential(potential, **kwargs)
     
-    def getEnergy(self, x_v_lam):
-        x, v, lam = self.cpot.split_x_v_lam(x_v_lam)
-        return 0.
+    def getEnergy(self, x_v):
+        e = self.cpot.getEnergy(x_v)
+        return e
     
-    def getEnergyGradient(self, x_v_lam):
-        x, v = self.cpot.split_x_v(x_v_lam)
-        v /= np.linalg.norm(v)
-        e, gxvlam = self.cpot.getEnergyGradient(x_v_lam)
+    def getEnergyGradient(self, x_v):
+        x, v = self.cpot.split_x_v(x_v)
+#        v /= np.linalg.norm(v)
+        e, gxv = self.cpot.getEnergyGradient(x_v)
         true_grad = self.cpot.pos.g
-        projected_grad = true_grad - 2. * np.dot(true_grad, v) * v
+        projected_grad = true_grad - 2. * np.dot(true_grad, v) * v / self.cpot.pos.vnorm
         g0 = np.zeros(projected_grad.size)
         g1 = self.cpot.merge_x_v(projected_grad, g0)
-        gtot = g1 + gxvlam
+        gtot = g1 + gxv
+        self.projected_grad = projected_grad.copy()
+        self.curvature_term_grad = gxv.copy() / self.cpot.lam
+        self.curvature_term_energy = e / self.cpot.lam
         return e, gtot
         
 
@@ -158,12 +155,15 @@ class TestPot(BasePotential):
              +4. * np.outer(x+dx, x-dx))
         return e, g, h
 
-def plot_test_pot_background(p=None):
-    x0 = np.arange(-1.5, 1.5,.05)
-    y0 = np.arange(-.6, .6,.05)
+def plot_test_pot_background(p=None, v=None, xmax=1.5, ymax=.6):
+    x0 = np.arange(-xmax, xmax, .05)
+    y0 = np.arange(-ymax, ymax, .05)
     xgrid, ygrid = np.meshgrid(x0, y0)
     p = p or TestPot()
-    f = np.array([p.getEnergy(np.array([x1,y])) for x1, y in izip(xgrid.ravel(), ygrid.ravel())]).reshape(xgrid.shape)
+    if v is None:
+        f = np.array([p.getEnergy(np.array([x1,y])) for x1, y in izip(xgrid.ravel(), ygrid.ravel())]).reshape(xgrid.shape)
+    else:
+        f = np.array([p.getEnergy(p.cpot.merge_x_v(np.array([x1,y]),v)) for x1, y in izip(xgrid.ravel(), ygrid.ravel())]).reshape(xgrid.shape)
     plt.contourf(x0, y0, f)
     plt.colorbar()
 
@@ -226,6 +226,19 @@ def test():
     ng = cpot.NumericalDerivative(xv, eps=1e-3)
     print "gradient", g
     print "num grad", ng
+    
+    
+def test3():
+    x = np.array([0.1,.2])
+    v = vec_random_ndim(2)
+    v = np.array([.4,.1])
+    v /= np.linalg.norm(v) 
+#    v = np.array([np.sqrt(2)]*2)
+#    v = np.array([1.,0])
+
+    p = TestPot()
+    cpot = CurvaturePotential(p)
+
     
     print "------------------------------"
     tcpot = TestCPot(cpot, x)
@@ -308,18 +321,27 @@ def test2():
     
     xvl_list = []
     def callback(coords=None, gradient=None, rms=None, **kwargs):
-        print "coords", coords, rms
-        print "grad", gradient
+#        print "coords", coords, rms
+#        print "grad", gradient
         xvl_list.append(coords.copy())
     
     
 #     steepest_descent(xvlam, dpot, iprint=1, dx=4e-3, nsteps=200, events=[callback])
-    lbfgs_py(xvlam, dpot, iprint=1, maxstep=1.4, nsteps=200, events=[callback])
+    ret = lbfgs_py(xvlam, dpot, iprint=1, maxstep=.1, nsteps=200, events=[callback], maxErise=2.5)
+    
+    print ret
+    
+    if False:
+        plot_test_pot_background(dpot, v=np.array([1.0,0]), xmax=.2, ymax=.2)
+        plt.show()
+    
+    
     
     plot_test_pot_background()
     ax = plt.gca()
     for xvl in xvl_list[0:-1:1]:
         x, v = cpot.split_x_v(xvl)
+        v = v / np.linalg.norm(v)
         print x, v
 #        plt.scatter(x[0], x[1])
         draw_arrow(x, v, ax)
@@ -331,4 +353,4 @@ def test2():
 
     
 if __name__ == "__main__":
-    test()
+    test2()
