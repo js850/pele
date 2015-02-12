@@ -467,6 +467,55 @@ v_k \frac{\partial \mu}{\partial v_j}
 \end{equation}
 Because $v$ is normalized we have $d\mu /dv$ along the $v$ direction is zero, so the first term vanishes.
 
+\subsection{updating v on change in x}
 
+The lagrange multiplier / minimizing cost function methods were not working very well.  Another approach
+is to use second derivative information to figure out how $\vec{v}$ (the smallest eigenvector) will change with
+changes in $\vec{x}$.
+If we treat $\vec{v}$ as a function of $\vec{x}$ and we can compute $d \vec{v}(\vec{x}) / d \vec{x}$, then then
+the change in $v$ upon a small displacement $\vec{\delta}$ will produce
+\begin{equation}
+v_k(\vec{x} + \vec{\delta}) \approx v_k(\vec{x}) + \vec{\delta} \cdot \frac{d v_k(\vec{x})}{d \vec{x}}
+\end{equation}
+Now we just need to compute $dv / dx$.  
+
+An equation which defines $v$ (though not uniquely) is 
+\begin{equation}
+\frac{\partial \mu(\vec{x}, \vec{v})}{\partial \vec{v}} = 0 
+\end{equation}
+Differentiating w.r.t. $x$ gives
+\begin{equation}
+\frac{\partial^2 \mu(\vec{x}, \vec{v})}{\partial v_j \partial x_k} + 
+\sum_i \frac{\partial^2 \mu(\vec{x}, \vec{v})}{\partial v_j \partial v_i} \frac{d v_i}{d x_k} 
+ = 0 
+\end{equation}
+This is a set of coupled linear equations.  Naively you would want to solve for for $d v_i / d x_k$ which are the components of 
+and $N \times N$ matrix, however what we really want is $ \vec{\delta} \cdot dv_i / d\vec{x}$ which are the components of a vector.
+\begin{equation}
+\sum_k \frac{\partial^2 \mu(\vec{x}, \vec{v})}{\partial v_j \partial x_k} \delta_k + 
+\sum_{ik} \frac{\partial^2 \mu(\vec{x}, \vec{v})}{\partial v_j \partial v_i} \frac{d v_i}{d x_k} \delta_k
+ = 0 
+\end{equation}
+This is an equation of the form $A \cdot \vec{u} = \vec{b}$ which can be solved for $\vec{u}$ using a linear solver.  Unfortunately linear
+solvers are about as slow as diagonalizing a matrix, so something we can't afford to do (if we had that much time, we would just compute $v$ directly
+by diagonalizing the Hessian). 
+
+We have
+\begin{equation}
+\frac{\partial^2 \mu}{\partial \vec{v} \partial \vec{v}} = \frac{2}{|\vec{v}|^2} \left[
+-\vec{v} \frac{\partial \mu}{\partial \vec{v}}^T
+-\frac{\partial \mu}{\partial \vec{v}} \vec{v}^T
++H
+-\mu I
+\right]
+\end{equation}
+If we take seriously that $\partial \mu / \partial v = 0$ then it simplifies to 
+\begin{equation}
+\frac{\partial^2 \mu}{\partial \vec{v} \partial \vec{v}} = \frac{2}{|\vec{v}|^2} \left[
+H
+-\mu I
+\right]
+\end{equation}
+I can't see how this helps.  
 
 \end{document}

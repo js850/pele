@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 from pele.potentials import BasePotential
 from pele.utils.rotations import vec_random_ndim
+from pele.utils.hessian import get_smallest_eig
 
 class Position(object):
     x = None
@@ -108,6 +109,7 @@ class CurvaturePotential(BasePotential):
         grad = self.merge_x_v(self.grad_wrt_x(pos),
                               self.grad_wrt_v(pos))
         grad[:x.size] = 0. # trial
+#        grad[:] = 0. # debug
         return e, grad
 
 
@@ -124,14 +126,18 @@ class ModifiedDimer(BasePotential):
 #        v /= np.linalg.norm(v)
         e, gxv = self.cpot.getEnergyGradient(x_v)
         true_grad = self.cpot.pos.g
-        projected_grad = true_grad - 2. * np.dot(true_grad, v) * v / self.cpot.pos.vnorm
+        projected_grad = true_grad - 2. * np.dot(true_grad, v) / np.dot(v,v) * v
+#        projected_grad = -np.dot(true_grad, v) * v / np.dot(v,v) # debug
         g0 = np.zeros(projected_grad.size)
         g1 = self.cpot.merge_x_v(projected_grad, g0)
         gtot = g1 + gxv
         self.projected_grad = projected_grad.copy()
         self.curvature_term_grad = gxv.copy() / self.cpot.lam
         self.curvature_term_energy = e / self.cpot.lam
-        return e, gtot
+#        assert np.dot(gtot[:x.size], true_grad) <= 0
+#        print np.dot(gtot[:x.size], true_grad)
+#        print np.dot(gtot[:x.size], true_grad) / np.linalg.norm(gtot[:x.size]) / np.linalg.norm(true_grad)
+        return e, gtot.copy()
         
 
 class TestPot(BasePotential):
@@ -155,9 +161,30 @@ class TestPot(BasePotential):
              +4. * np.outer(x+dx, x-dx))
         return e, g, h
 
+class TestPot2(BasePotential):
+    x1 = np.array([1.,0])
+    x2 = np.array([-.8,0])
+    L1 = .9
+    L2 = .4
+    def getEnergy(self, x):
+        t1 = -3. * np.exp(-np.dot(x-self.x1, x-self.x1) / self.L1**2)
+        t2 = -3.5 * np.exp(-np.dot(x-self.x2, x-self.x2) / self.L2**2)
+        t3 = 0.01 * np.dot(x,x)
+        t3 = 0.
+        return t1 + t2 + t3
+    def getEnergyGradient(self, x):
+        t1 = -3. * np.exp(-np.dot(x-self.x1, x-self.x1) / self.L1**2)
+        g1 = -2.*t1 * (x-self.x1) / self.L1**2 
+        t2 = -3.5 * np.exp(-np.dot(x-self.x2, x-self.x2) / self.L2**2)
+        g2 = -2.*t2 * (x-self.x2) / self.L2**2 
+        t3 = 0.01 * np.dot(x,x)
+        g3 = 2*0.01 * x
+        t3 = g3 = 0;
+        return t1 + t2 + t3, g1 + g2 + g3
+
 def plot_test_pot_background(p=None, v=None, xmax=1.5, ymax=.6):
-    x0 = np.arange(-xmax, xmax, .05)
-    y0 = np.arange(-ymax, ymax, .05)
+    x0 = np.linspace(-xmax, xmax, 100)
+    y0 = np.linspace(-ymax, ymax, 100)
     xgrid, ygrid = np.meshgrid(x0, y0)
     p = p or TestPot()
     if v is None:
@@ -166,6 +193,7 @@ def plot_test_pot_background(p=None, v=None, xmax=1.5, ymax=.6):
         f = np.array([p.getEnergy(p.cpot.merge_x_v(np.array([x1,y]),v)) for x1, y in izip(xgrid.ravel(), ygrid.ravel())]).reshape(xgrid.shape)
     plt.contourf(x0, y0, f)
     plt.colorbar()
+    return x0, y0, xgrid, ygrid
 
 def plot_test_pot(x, v):
     plot_test_pot_background()
@@ -296,25 +324,27 @@ def test3():
 
 def draw_arrow(x, v, ax=None, c='k'):
     ax = ax or plt.gca()
-    h = x+v
-    ax.arrow(x[0], x[1], h[0], h[1], fc=c, ec=c)
+    ax.arrow(x[0], x[1], v[0], v[1], fc=c, ec=c)
 
 def test2():
     from pele.optimize._quench import steepest_descent, lbfgs_py
     from pele.utils.hessian import get_smallest_eig
-    p = TestPot()
-    x = np.array([0.4, 0.5])
+    p = TestPot2()
+    x = np.array([0.4, 0.1])
     v = vec_random_ndim(2) 
 #    v = np.array([.4,.1])
 #    v /= np.linalg.norm(v) 
 #    lam = np.array([.3,-.1])
+    
+    if True:
+        p.test_potential(x)
 
     hess = p.getHessian(x)
     mu, v = get_smallest_eig(hess)
 
 #    plot_test_pot(x, v, lam)
 
-    cpot = CurvaturePotential(p, lam=1.)
+    cpot = CurvaturePotential(p, lam=10.)
     dpot = ModifiedDimer(p)
     
     xvlam = cpot.merge_x_v(x, v)
@@ -326,8 +356,8 @@ def test2():
         xvl_list.append(coords.copy())
     
     
-#     steepest_descent(xvlam, dpot, iprint=1, dx=4e-3, nsteps=200, events=[callback])
-    ret = lbfgs_py(xvlam, dpot, iprint=1, maxstep=.1, nsteps=200, events=[callback], maxErise=2.5)
+#    ret = steepest_descent(xvlam, dpot, iprint=1, dx=1e-2, nsteps=20, events=[callback])
+    ret = lbfgs_py(xvlam, dpot, iprint=1, maxstep=1.51, nsteps=200, events=[callback], maxErise=2.5)
     
     print ret
     
@@ -337,20 +367,42 @@ def test2():
     
     
     
-    plot_test_pot_background()
+    plot_test_pot_background(p=p)
     ax = plt.gca()
     for xvl in xvl_list[0:-1:1]:
         x, v = cpot.split_x_v(xvl)
         v = v / np.linalg.norm(v)
         print x, v
-#        plt.scatter(x[0], x[1])
         draw_arrow(x, v, ax)
+#        plt.scatter(x[0], x[1])
 #        draw_arrow(x, lam, ax, c='r')
     
     plt.show()
     
+def draw_hessian_vector_field():
+    p = TestPot2()
+    x0, y0, xgrid, ygrid = plot_test_pot_background(p=p)
     
+    vx = []
+    vy = []
+    for x, y in izip(xgrid.ravel(), ygrid.ravel()):
+        xy = np.array([x, y])
+        hess = p.getHessian(xy)
+        mu, v = get_smallest_eig(hess)
+#        v *= .1
+        vx.append(v[0])
+        vy.append(v[1])
+#        draw_arrow(xy, v)
+    
+    vx = np.array(vx).reshape(xgrid.shape)
+    vy = np.array(vy).reshape(xgrid.shape)
+#    plt.streamplot(x0, y0, vx, vy, color='k')
+    plt.quiver(x0, y0, vx, vy, color='k')
+    plt.show()
+        
+         
 
     
 if __name__ == "__main__":
     test2()
+#    draw_hessian_vector_field()
