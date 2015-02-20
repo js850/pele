@@ -9,6 +9,24 @@ from pele.utils.rotations import vec_random
 from pele.angleaxis._aa_utils import _rot_mat_derivative, _sitedist_grad, _sitedist
 from pele.utils import rotations
 
+from pele.angleaxis._otp_bulk import InterpolateRigidBulk, OTPBulk
+from pele.angleaxis.aasystem import InterpolateRigid
+
+class TestInterpolate(unittest.TestCase):
+    def test1(self):
+        boxvec = np.array([6, 4, 5.])
+        nmol = 10
+        system = OTPBulk(nmol, boxvec, rcut=2.)
+        
+        x1 = system.get_random_configuration()
+        x2 = system.get_random_configuration()
+        
+        interp = InterpolateRigid(system.aatopology)
+        
+        i = interp(x1, x2, .1)
+        print i
+        
+        
 
 class TestRmDrvt(unittest.TestCase):
     def assert_array_almost_equal(self, v1, v2, **kwargs):

@@ -4,13 +4,36 @@ from itertools import izip
 import numpy as np
 
 from pele.systems import BaseSystem, dict_copy_update
-from pele.angleaxis import MinPermDistAACluster, ExactMatchAACluster
+from pele.angleaxis import MinPermDistAACluster, ExactMatchAACluster, interpolate_angleaxis
 from pele.angleaxis import TakestepAA
 from pele.landscape import smooth_path
 from pele.utils.elements import elements
 from pele.utils.xyz import write_xyz
 from pele.mindist import PointGroupOrderCluster
 from pele.utils import rotations
+from pele.mindist import MeasureAtomicCluster
+from pele.transition_states import InterpolateLinearMeasure
+
+
+class InterpolateRigid(object):
+    """interpolate between two rigid body configurations"""
+    def __init__(self, aatopology):
+        self.interpolate_periodic = InterpolateLinearMeasure(MeasureAtomicCluster())
+        self.aatopology = aatopology
+        
+    def __call__(self, initial, final, t):
+        x = self.aatopology.coords_adapter(np.zeros(final.size)) 
+        initial = self.aatopology.coords_adapter(initial) 
+        final = self.aatopology.coords_adapter(final) 
+        
+        # linear interpolation of com
+        p = x.posRigid.ravel()
+        p[:] = self.interpolate_periodic(initial.posRigid.ravel(), final.posRigid.ravel(), t)
+    
+        # interpolate the rotation
+        x.rotRigid[:] = interpolate_angleaxis(initial.rotRigid, final.rotRigid, t)
+        
+        return x.coords.ravel()
 
 class AASystem(BaseSystem):
     def __init__(self):
@@ -18,7 +41,9 @@ class AASystem(BaseSystem):
         # js850> we should really change this name from self.aasystem to self.aatopology
         self.aasystem = self.setup_aatopology()
         self.aatopology = self.aasystem
-                
+        
+        self.params.double_ended_connect.local_connect_params.NEBparams.interpolator = InterpolateRigid(self.aatopology)
+
         self.params.basinhopping["temperature"]=8.
         self.params.takestep["translate"]=0.0
         self.params.takestep["rotate"]=1.6
@@ -26,7 +51,7 @@ class AASystem(BaseSystem):
         self.params.double_ended_connect.local_connect_params.nrefine_max = 5
         
         NEBparams = self.params.double_ended_connect.local_connect_params.NEBparams
-        self.params.double_ended_connect.local_connect_params.NEBparams.distance=self.aasystem.neb_distance
+        self.params.double_ended_connect.local_connect_params.NEBparams.distance = self.aasystem.neb_distance
 
         NEBparams.max_images=200
         NEBparams.image_density=3.0

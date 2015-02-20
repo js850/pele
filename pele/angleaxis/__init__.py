@@ -62,6 +62,6 @@ from aatopology import AASiteType, AATopology, interpolate_angleaxis, TakestepAA
 from rigidbody import RigidFragment, RBTopology, RBTopologyBulk, RigidFragmentBulk
 from aamindist import TransformAngleAxisCluster, MeasureAngleAxisCluster, \
     MeasureRigidBodyCluster, ExactMatchAACluster, MinPermDistAACluster
-from aasystem import AASystem, RBSystem
+from aasystem import AASystem, RBSystem, InterpolateRigid
 from _cpp_aa import RBPotentialWrapper
 

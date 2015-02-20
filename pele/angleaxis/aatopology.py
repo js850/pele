@@ -3,16 +3,16 @@ with general rigid body systems.  i.e. those that do not
 necessarily have a representation as a set of atomistic coords.
 see rigidbody.py for those classes which derive from these.
 """
+from math import pi
 
 import numpy as np
+
 from pele.utils import rotations
 from pele.angleaxis import CoordsAdapter
 from pele.transition_states import interpolate_linear
-from math import pi
 from pele import takestep
 from pele.transition_states import _zeroev as zeroev
 from pele.angleaxis.aamindist import TransformAngleAxisCluster
-
 from pele.utils.rotations import rot_mat_derivatives
 from _aadist import sitedist_grad, sitedist
 
@@ -37,6 +37,7 @@ def interpolate_angleaxis(initial, final, t):
         conf[i] = rotations.q2aa(rotations.q_slerp(rotations.aa2q(initial[i]),
                                                    rotations.aa2q(final[i]), t))
     return conf
+
 
 
 class AASiteType(object):

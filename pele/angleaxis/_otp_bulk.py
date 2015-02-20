@@ -1,3 +1,5 @@
+from itertools import izip
+
 import numpy as np
 from numpy import cos, sin, pi
 
@@ -10,6 +12,17 @@ from pele.potentials._lj_cpp import LJCutCellLists, LJCut
 from pele.angleaxis.bulk_rigid_mindist import MinDistBulkRigid
 from pele.angleaxis.aaperiodicttransforms import MeasurePeriodicRigid,\
     TransformPeriodicRigid
+from pele.mindist import MeasurePeriodic
+from pele.transition_states import InterpolateLinearMeasure
+from pele.utils import rotations
+from pele.angleaxis import InterpolateRigid
+
+
+class InterpolateRigidBulk(InterpolateRigid):
+    def __init__(self, aatopology, boxvec):
+        self.interpolate_periodic = InterpolateLinearMeasure(MeasurePeriodic(boxvec))
+        self.aatopology = aatopology
+    
 
 class OTPBulk(RBSystem):
     """
@@ -24,7 +37,10 @@ class OTPBulk(RBSystem):
         self.cut=rcut
         
         super(OTPBulk, self).__init__()      
+
+        self.params.double_ended_connect.local_connect_params.NEBparams.interpolator = InterpolateRigidBulk(self.aatopology, self.boxvec)
         self.setup_params(self.params)
+        
 
 
     def make_otp(self):

@@ -2,9 +2,10 @@ import numpy as np
 
 from pele.angleaxis import aatopology
 from pele.potentials.potential import potential
-from pele.mindist import ExactMatchAtomicCluster
+from pele.mindist import ExactMatchAtomicCluster, MeasurePeriodic
 from pele.utils.rotations import mx2aa
 from pele.utils import rotations
+
 
 
 class RigidFragment(aatopology.AASiteType):
@@ -194,24 +195,17 @@ class RigidFragmentBulk(RigidFragment):
        but with an overloaded method "get_smallest_rij" to incorporate 
        periodic boundary conditions.
     """
-    def __init__(self,boxl):
-        aatopology.AASiteType.__init__(self)
-        self.atom_positions = []
-        self.atom_types = []
-        self.atom_masses = []
-        self.boxsize = boxl
+    def __init__(self, boxvec):
+        super(RigidFragmentBulk, self).__init__()
+        self.boxsize = boxvec
     
     def get_smallest_rij(self, com1, com2):
         """return the shortest vector from com1 to com2 (both numpy arrays containing 
         coordinates for any number of atoms) using periodic boundary conditions.
         """
-        boxvec = self.boxsize
-        dx = com2 - com1  
-        dx = dx.reshape(-1, boxvec.size) # sn402: takes dx (however long it is - 
-        # in this case 3*nrigid) and reshapes it to boxvec.size columns.
-        dx -= boxvec * np.round(dx / boxvec[np.newaxis,:]) # np.newaxis inserts a new column into boxvec. 
-        # This is just to match shape with dx and hence allow division.
-        return dx       
+        measure = MeasurePeriodic(self.boxvec)
+        _, dx = measure.get_dist(com1, com2, with_vector=True)
+        return dx
                     
 
 class RBTopology(aatopology.AATopology):

@@ -157,11 +157,13 @@ class MeasureAngleAxisCluster(MeasurePolicy):
             return self._align_pythonic(coords1, coords2)
                     
 
-    def get_dist(self, x1, x2):
+    def get_dist(self, x1, x2, with_vector=False):
         """compute the distance between two configurations"""
         x1 = x1.copy()
         x2 = x2.copy()
         self.align(x1, x2)
+        if with_vector:
+            raise NotImplementedError("distance vector not implemented for rigid body systems")
         return sqrt(self.topology.distance_squared(x1, x2))
     
     def find_permutation(self, X1, X2):
